@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstdio>
+#include <bits/get_device_api_level_inlines.h>
 #include <unistd.h>
 #include <sys/system_properties.h>
 #include <dlfcn.h>
@@ -120,11 +121,12 @@ namespace {
     string GetNativeBridgeLibrary() {
         auto nativeBridge = array<char, PROP_VALUE_MAX>();
         __system_property_get("ro.dalvik.vm.native.bridge", nativeBridge.data());
-        return string(nativeBridge.data());
+        return {nativeBridge.data()};
     }
 
     bool IsABIRequiredNativeBridge() {
-        return ABI == "x86"s || ABI == "x86_64"s;
+        // x86 is Play Games build
+        return ABI == "x86_64"s;
     }
 
     bool IsRunningOnNativeBridge() {

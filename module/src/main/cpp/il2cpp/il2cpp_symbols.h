@@ -37,6 +37,14 @@ namespace il2cpp_symbols {
     Il2CppMethodPointer find_method(const char *assemblyName, const char *namespaze,
                                     const char *klassName,
                                     const std::function<bool(const MethodInfo *)> &predict);
+
+    template<typename T>
+    T find_method(const char* assemblyName, const char* namespaze,
+                  const char* klassName,
+                  const std::function<bool(const MethodInfo*)>& predict)
+    {
+        return reinterpret_cast<T>(find_method(assemblyName, namespaze, klassName, predict));
+    }
 }
 
 #endif //UMAMUSUMELOCALIFYANDROID_IL2CPP_SYMBOLS_H

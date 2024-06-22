@@ -157,6 +157,28 @@ typedef struct MethodInfo {
     uint8_t is_marshaled_from_native [[maybe_unused]]: 1;
 } MethodInfo;
 
+template<typename T>
+struct MethodInfo_t
+{
+    T methodPointer;
+    uintptr_t invoker_method [[maybe_unused]];
+    const char *name [[maybe_unused]];
+    Il2CppClass *klass [[maybe_unused]];
+    const Il2CppType *return_type [[maybe_unused]];
+    const ParameterInfo *parameters [[maybe_unused]];
+    uintptr_t methodDefinition [[maybe_unused]];
+    uintptr_t genericContainer [[maybe_unused]];
+    uint32_t token [[maybe_unused]];
+    uint16_t flags [[maybe_unused]];
+    uint16_t iflags [[maybe_unused]];
+    uint16_t slot [[maybe_unused]];
+    uint8_t parameters_count [[maybe_unused]];
+    uint8_t is_generic [[maybe_unused]]: 1;
+    uint8_t is_inflated [[maybe_unused]]: 1;
+    uint8_t wrapper_type [[maybe_unused]]: 1;
+    uint8_t is_marshaled_from_native [[maybe_unused]]: 1;
+};
+
 typedef struct Il2CppClass {
     // The following fields are always valid for a Il2CppClass structure
     const void *image;
@@ -282,6 +304,15 @@ typedef struct Il2CppArray {
     il2cpp_array_size_t max_length [[maybe_unused]];
     void *vector[0];
 } Il2CppArray;
+
+template<typename T>
+struct Il2CppArray_t {
+    Il2CppObject obj;
+    Il2CppArrayBounds *bounds [[maybe_unused]];
+    il2cpp_array_size_t max_length [[maybe_unused]];
+    T vector[0];
+};
+
 static const size_t kIl2CppSizeOfArray = (offsetof(Il2CppArray, vector));
 
 typedef struct Il2CppString {
@@ -542,6 +573,15 @@ typedef struct Boolean {
 typedef struct IntPtr {
     void *m_value;
 } IntPtr;
+
+template<typename K, typename V>
+struct Entry
+{
+    int hashCode;
+    int next;
+    K key;
+    V value;
+};
 
 // UnityEngine.ScreenOrientation
 enum class ScreenOrientation {

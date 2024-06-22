@@ -1,7 +1,9 @@
 package com.kimjio.umamusumelocalify;
 
+import android.app.Activity;
 import android.app.Notification;
 import android.content.Context;
+import android.content.res.Configuration;
 import android.content.res.Resources;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
@@ -14,7 +16,7 @@ import java.lang.reflect.Member;
 import java.lang.reflect.Method;
 import java.util.Objects;
 
-@SuppressWarnings("unused")
+@SuppressWarnings({"unused", "JavaJniMissingFunction"})
 public final class Hooker {
     private static final String TAG = "UmamusumeLocalify[Java]";
     private static final String KEY_LARGE_ICON = "largeIcon";
@@ -41,18 +43,24 @@ public final class Hooker {
     }
 
     public static void load() throws NoSuchMethodException, SecurityException {
-        Hooker.hook(
+        /*Hooker.hook(
                 Notification.Builder.class.getDeclaredMethod("build"),
                 Hooker.class.getDeclaredMethod("build", MethodCallback.class),
                 new Hooker());
-        Log.i(TAG, "Notification$Builder.build() hooked");
+        Log.i(TAG, "Notification$Builder.build() hooked");*/
+
+        Hooker.hook(
+                Activity.class.getDeclaredMethod("onConfigurationChanged", Configuration.class),
+                Hooker.class.getDeclaredMethod("onConfigurationChanged", MethodCallback.class),
+                new Hooker());
+        Log.i(TAG, "Activity.onConfigurationChanged() hooked");
     }
 
-    @SuppressWarnings("JavaJniMissingFunction")
     private native Method doHook(Member original, Method callback);
 
-    @SuppressWarnings("JavaJniMissingFunction")
     private native boolean doUnhook(Member target);
+
+    private native void onConfigurationChanged_native(Activity activity, Configuration newConfig);
 
     public Object callback(Object[] args) throws InvocationTargetException, IllegalAccessException {
         MethodCallback methodCallback = new MethodCallback(backup, args);
@@ -61,6 +69,17 @@ public final class Hooker {
 
     public boolean unhook() {
         return doUnhook(target);
+    }
+
+    public void onConfigurationChanged(MethodCallback callback) throws InvocationTargetException, IllegalAccessException  {
+        Activity thiz = (Activity) callback.args[0];
+        Configuration newConfig = (Configuration) callback.args[1];
+
+        // WindowMetrics metrics = WindowMetricsCalculator.getOrCreate().computeCurrentWindowMetrics(thiz);
+
+        onConfigurationChanged_native(thiz, newConfig);
+
+        callback.backup.invoke(thiz, newConfig);
     }
 
     Notification build(MethodCallback callback) throws InvocationTargetException, IllegalAccessException {

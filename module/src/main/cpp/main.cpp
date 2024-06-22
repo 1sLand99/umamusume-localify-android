@@ -100,7 +100,7 @@ public:
         /* if (!enable_hack) {
             enable_settings_hack = isSettings(pkgNm);
         } */
-        if (enable_hack && Game::currentGameRegion == Game::Region::KOR) {
+        if (enable_hack/* && Game::CurrentGameRegion == Game::Region::KOR*/) {
             fetchResources();
         }
         env->ReleaseStringUTFChars(args->nice_name, pkgNm);
@@ -108,25 +108,25 @@ public:
 
     void postAppSpecialize(const AppSpecializeArgs *) override {
         if (enable_hack /* || enable_settings_hack */) {
-            /*if (enable_hack && Game::currentGameRegion == Game::Region::KOR) {
-                SandHook::ElfImg art("libart.so");
-                lsplant::InitInfo initInfo{
-                        .inline_hooker = InlineHooker,
-                        .inline_unhooker = InlineUnhooker,
-                        .art_symbol_resolver = [&art](std::string_view symbol) -> void * {
-                            return art.getSymbAddress(symbol);
-                        },
-                        .art_symbol_prefix_resolver = [&art](auto symbol) {
-                            return art.getSymbPrefixFirstOffset(symbol);
-                        },
-                };
-                if (lsplant::Init(env, initInfo) && classesDex != nullptr) {
-                    dex_load_and_invoke(
-                            env,
-                            classesDex->base, classesDex->length
-                    );
-                }
-            }*/
+            // if (enable_hack) {
+            SandHook::ElfImg art("libart.so");
+            const lsplant::InitInfo initInfo{
+                    .inline_hooker = InlineHooker,
+                    .inline_unhooker = InlineUnhooker,
+                    .art_symbol_resolver = [&art](std::string_view symbol) -> void * {
+                        return art.getSymbAddress(symbol);
+                    },
+                    .art_symbol_prefix_resolver = [&art](auto symbol) {
+                        return art.getSymbPrefixFirstOffset(symbol);
+                    },
+            };
+            if (lsplant::Init(env, initInfo) && classesDex != nullptr) {
+                dex_load_and_invoke(
+                        env,
+                        classesDex->base, classesDex->length
+                );
+            }
+            // }
             int ret;
             pthread_t t;
             ret = pthread_create(&t, nullptr,
@@ -188,8 +188,8 @@ void hook() __attribute__((constructor));
 
 void hook() {
     if (IsRunningOnNativeBridge()) {
-        Game::currentGameRegion = Game::CheckPackageNameByDataPath();
-        if (Game::currentGameRegion == Game::Region::UNKNOWN) {
+        Game::CurrentGameRegion = Game::CheckPackageNameByDataPath();
+        if (Game::CurrentGameRegion == Game::Region::UNKNOWN) {
             LOGW("Region UNKNOWN...");
             return;
         }

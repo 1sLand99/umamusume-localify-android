@@ -2,7 +2,7 @@ package com.kimjio.umamusumelocalify;
 
 import java.lang.reflect.Method;
 
-public class MethodCallback {
+public final class MethodCallback {
     Method backup;
     Object[] args;
 

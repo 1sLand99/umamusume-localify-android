@@ -60,7 +60,7 @@ target_compile_definitions(sqlite3 PUBLIC SQLITE_ENABLE_BATCH_ATOMIC_WRITE)
 target_compile_definitions(sqlite3 PUBLIC SQLITE_TEMP_STORE=3)
 target_compile_definitions(sqlite3 PUBLIC SQLITE_USE_URI=1)
 
-add_library(${MODULE_NAME} SHARED main.cpp hook.cpp il2cpp/il2cpp_symbols.cpp il2cpp_hook.cpp localify/localify.cpp jwt/jwt.cpp logger/logger.cpp notifier/notifier.cpp elf_util.cpp zygoteloader/serializer.c zygoteloader/dex.cpp zygoteloader/main.c ${CMAKE_CURRENT_BINARY_DIR}/config.cpp)
+add_library(${MODULE_NAME} SHARED main.cpp hook.cpp il2cpp/il2cpp_symbols.cpp il2cpp_hook.cpp localify/localify.cpp camera.cpp jwt/jwt.cpp logger/logger.cpp notifier/notifier.cpp elf_util.cpp zygoteloader/serializer.c zygoteloader/dex.cpp zygoteloader/main.c ${CMAKE_CURRENT_BINARY_DIR}/config.cpp)
 target_link_libraries(${MODULE_NAME} log dobby SQLiteCpp sqlite3 lsplant_static hmac_sha256 httplib)
 
 if (NOT CMAKE_BUILD_TYPE STREQUAL "Debug")

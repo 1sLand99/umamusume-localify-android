@@ -3,8 +3,11 @@
 #include "../log.h"
 
 #include <string>
+#include <vector>
 
 #include "lsplant.hpp"
+
+#include "../il2cpp_hook.h"
 
 
 #define find_class(var_name, name) jclass var_name = env->FindClass(name);
@@ -20,7 +23,7 @@ jobject doHook(JNIEnv *env, jobject thiz, jobject target, jobject callback) {
     return lsplant::Hook(env, target, thiz, callback);
 }
 
-jboolean doUnhook(JNIEnv *env, jobject, jobject target) {
+jboolean doUnhook(JNIEnv *env, jobject /*this*/, jobject target) {
     return lsplant::UnHook(env, target);
 }
 
@@ -129,22 +132,34 @@ void dex_load_and_invoke(
 
     find_method(m_load_class, c_class_loader, "loadClass",
                 "(Ljava/lang/String;)Ljava/lang/Class;");
+
+    auto calculatorClass = static_cast<jclass>(env->CallObjectMethod(
+            o_dex_class_loader,
+            m_load_class,
+            new_string("androidx.window.layout.WindowMetricsCalculator")
+    ));
+
+    env->NewGlobalRef(calculatorClass);
+
     auto c_loader = static_cast<jclass>(env->CallObjectMethod(
             o_dex_class_loader,
             m_load_class,
             new_string("com.kimjio.umamusumelocalify.Hooker")
     ));
 
-    JNINativeMethod methods[] = {
+    std::vector<JNINativeMethod> methods = {
             {.name = "doHook",
                     .signature = "(Ljava/lang/reflect/Member;Ljava/lang/reflect/Method;)Ljava/lang/reflect/Method;",
                     .fnPtr = reinterpret_cast<void *>(doHook)},
             {.name = "doUnhook",
                     .signature = "(Ljava/lang/reflect/Member;)Z",
-                    .fnPtr = reinterpret_cast<void *>(doUnhook)}
+                    .fnPtr = reinterpret_cast<void *>(doUnhook)},
+            {.name = "onConfigurationChanged_native",
+                .signature = "(Landroid/app/Activity;Landroid/content/res/Configuration;)V",
+                .fnPtr = reinterpret_cast<void *>(onConfigurationChanged_native)}
     };
 
-    env->RegisterNatives(c_loader, methods, 2);
+    env->RegisterNatives(c_loader, methods.data(), static_cast<jint>(methods.size()));
 
     find_static_method(m_load, c_loader, "load", "()V");
 

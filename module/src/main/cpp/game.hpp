@@ -24,8 +24,8 @@ namespace Game {
         Other
     };
 
-    inline auto currentGameRegion = Region::UNKNOWN;
-    inline auto currentGameStore = Store::Google;
+    inline auto CurrentGameRegion = Region::UNKNOWN;
+    inline auto CurrentGameStore = Store::Google;
 
     inline auto GamePackageName = "jp.co.cygames.umamusume"s;
     inline auto GamePackageNameKor = "com.kakaogames.umamusume"s;
@@ -40,26 +40,26 @@ namespace Game {
         switch (gameRegion) {
             case Region::JAP:
                 if (pkgNmStr == GamePackageName) {
-                    currentGameRegion = Region::JAP;
-                    currentGameStore = Store::Google;
+                    CurrentGameRegion = Region::JAP;
+                    CurrentGameStore = Store::Google;
                     return true;
                 }
                 break;
             case Region::KOR:
                 if (pkgNmStr == GamePackageNameKor) {
-                    currentGameRegion = Region::KOR;
-                    currentGameStore = Store::Google;
+                    CurrentGameRegion = Region::KOR;
+                    CurrentGameStore = Store::Google;
                     return true;
                 }
                 break;
             case Region::TWN:
                 if (pkgNmStr == GamePackageNameTwnGoogle) {
-                    currentGameRegion = Region::TWN;
-                    currentGameStore = Store::Google;
+                    CurrentGameRegion = Region::TWN;
+                    CurrentGameStore = Store::Google;
                     return true;
                 } else if (pkgNmStr == GamePackageNameTwnMyCard) {
-                    currentGameRegion = Region::TWN;
-                    currentGameStore = Store::Other;
+                    CurrentGameRegion = Region::TWN;
+                    CurrentGameStore = Store::Other;
                     return true;
                 }
                 break;
@@ -85,7 +85,7 @@ namespace Game {
     }
 
     static string GetCurrentPackageName() {
-        return GetPackageNameByGameRegionAndGameStore(currentGameRegion, currentGameStore);
+        return GetPackageNameByGameRegionAndGameStore(CurrentGameRegion, CurrentGameStore);
     }
 
     static Region CheckPackageNameByDataPath() {
@@ -119,7 +119,7 @@ namespace Game {
                                                                        Store::Other)).append(
                         "/cache").data(),
                 F_OK) == 0) {
-            currentGameStore = Store::Other;
+            CurrentGameStore = Store::Other;
             return Region::TWN;
         }
 

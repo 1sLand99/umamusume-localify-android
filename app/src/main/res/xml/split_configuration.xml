@@ -3,8 +3,8 @@
 
     <SplitPairRule
         app:splitRatio="0.5"
-        app:finishPrimaryWithSecondary="true"
-        app:finishSecondaryWithPrimary="true">
+        app:finishPrimaryWithSecondary="never"
+        app:finishSecondaryWithPrimary="always">
         <SplitPairFilter
             app:primaryActivityName=".activity.MainActivity"
             app:secondaryActivityName=".activity.*"/>

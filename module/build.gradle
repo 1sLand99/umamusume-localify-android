@@ -2,14 +2,15 @@ import org.apache.tools.ant.filters.FixCrLfFilter
 import org.apache.tools.ant.filters.ReplaceTokens
 
 apply plugin: 'com.android.library'
+// apply plugin: 'kotlin-android'
 apply from: file(rootProject.file('module.gradle'))
 
 android {
     flavorDimensions += "api"
 
     compileSdkVersion = rootProject.ext.targetSdkVersion
-    buildToolsVersion = '33.0.2'
-    ndkVersion '25.0.8775105'
+    buildToolsVersion = '34.0.0'
+    ndkVersion '25.2.9519653'
     defaultConfig {
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
@@ -46,6 +47,13 @@ android {
         }
     }
     namespace 'com.kimjio.umamusumelocalify'
+    sourceSets {
+        main.java.srcDirs += 'src/main/kotlin'
+    }
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
 }
 
 repositories {
@@ -53,6 +61,8 @@ repositories {
 }
 
 dependencies {
+    implementation fileTree(dir: 'libs', include: ['*.jar', '*.aar'])
+    implementation 'androidx.annotation:annotation:1.6.0'
 }
 
 afterEvaluate {
@@ -120,22 +130,62 @@ afterEvaluate {
                 filter(FixCrLfFilter.class,
                         eol: FixCrLfFilter.CrLf.newInstance("lf"))
             }
-            from("$buildDir/intermediates/stripped_native_libs/$variantLowered/out/lib") {
+
+            from("${layout.buildDirectory.asFile.get()}/intermediates/stripped_native_libs/$variantLowered/strip${variantLowered}DebugSymbols/out/lib") {
                 into 'lib'
             }
 
-            from("$buildDir/intermediates/javac/$variantLowered/") {
-                exclude 'classes'
+            from("${layout.buildDirectory.asFile.get()}/intermediates/javac/$variantLowered/") {
+                exclude "compile${variantLowered}JavaWithJavac"
                 doFirst {
                     def sdkDir = project.android.sdkDirectory;
                     def buildToolVersion = project.android.buildToolsVersion;
                     exec {
-                        workingDir "$buildDir/intermediates/javac/$variantLowered"
+                        workingDir "${layout.buildDirectory.asFile.get()}/intermediates/javac/$variantLowered"
                         commandLine "$sdkDir/build-tools/$buildToolVersion/d8${System.properties['os.name'].toLowerCase().contains('windows'.toLowerCase()) ? ".bat" : ''}",
-                                "$buildDir/intermediates/javac/$variantLowered/classes/com/kimjio/umamusumelocalify/Hooker.class",
-                                "$buildDir/intermediates/javac/$variantLowered/classes/com/kimjio/umamusumelocalify/MethodCallback.class"
+                                "${layout.buildDirectory.asFile.get()}/intermediates/javac/$variantLowered/compile${variantLowered}JavaWithJavac/classes/androidx/core/graphics/Insets.class",
+                                "${layout.buildDirectory.asFile.get()}/intermediates/javac/$variantLowered/compile${variantLowered}JavaWithJavac/classes/androidx/core/graphics/Insets\$Api29Impl.class",
+                                "${layout.buildDirectory.asFile.get()}/intermediates/javac/$variantLowered/compile${variantLowered}JavaWithJavac/classes/androidx/core/util/ObjectsCompat.class",
+                                "${layout.buildDirectory.asFile.get()}/intermediates/javac/$variantLowered/compile${variantLowered}JavaWithJavac/classes/androidx/core/util/ObjectsCompat\$Api19Impl.class",
+                                "${layout.buildDirectory.asFile.get()}/intermediates/javac/$variantLowered/compile${variantLowered}JavaWithJavac/classes/androidx/core/util/Preconditions.class",
+                                "${layout.buildDirectory.asFile.get()}/intermediates/javac/$variantLowered/compile${variantLowered}JavaWithJavac/classes/androidx/core/view/DisplayCutoutCompat.class",
+                                "${layout.buildDirectory.asFile.get()}/intermediates/javac/$variantLowered/compile${variantLowered}JavaWithJavac/classes/androidx/core/view/DisplayCutoutCompat\$Api28Impl.class",
+                                "${layout.buildDirectory.asFile.get()}/intermediates/javac/$variantLowered/compile${variantLowered}JavaWithJavac/classes/androidx/core/view/DisplayCutoutCompat\$Api30Impl.class",
+                                "${layout.buildDirectory.asFile.get()}/intermediates/javac/$variantLowered/compile${variantLowered}JavaWithJavac/classes/androidx/core/view/DisplayCutoutCompat\$Api29Impl.class",
+                                "${layout.buildDirectory.asFile.get()}/intermediates/javac/$variantLowered/compile${variantLowered}JavaWithJavac/classes/androidx/core/view/ViewCompat.class",
+                                "${layout.buildDirectory.asFile.get()}/intermediates/javac/$variantLowered/compile${variantLowered}JavaWithJavac/classes/androidx/core/view/WindowInsetsCompat.class",
+                                "${layout.buildDirectory.asFile.get()}/intermediates/javac/$variantLowered/compile${variantLowered}JavaWithJavac/classes/androidx/core/view/WindowInsetsCompat\$Type.class",
+                                "${layout.buildDirectory.asFile.get()}/intermediates/javac/$variantLowered/compile${variantLowered}JavaWithJavac/classes/androidx/core/view/WindowInsetsCompat\$Impl.class",
+                                "${layout.buildDirectory.asFile.get()}/intermediates/javac/$variantLowered/compile${variantLowered}JavaWithJavac/classes/androidx/core/view/WindowInsetsCompat\$Impl20.class",
+                                "${layout.buildDirectory.asFile.get()}/intermediates/javac/$variantLowered/compile${variantLowered}JavaWithJavac/classes/androidx/core/view/WindowInsetsCompat\$Impl21.class",
+                                "${layout.buildDirectory.asFile.get()}/intermediates/javac/$variantLowered/compile${variantLowered}JavaWithJavac/classes/androidx/core/view/WindowInsetsCompat\$Impl28.class",
+                                "${layout.buildDirectory.asFile.get()}/intermediates/javac/$variantLowered/compile${variantLowered}JavaWithJavac/classes/androidx/core/view/WindowInsetsCompat\$Impl29.class",
+                                "${layout.buildDirectory.asFile.get()}/intermediates/javac/$variantLowered/compile${variantLowered}JavaWithJavac/classes/androidx/core/view/WindowInsetsCompat\$Impl30.class",
+                                "${layout.buildDirectory.asFile.get()}/intermediates/javac/$variantLowered/compile${variantLowered}JavaWithJavac/classes/androidx/core/view/WindowInsetsCompat\$Builder.class",
+                                "${layout.buildDirectory.asFile.get()}/intermediates/javac/$variantLowered/compile${variantLowered}JavaWithJavac/classes/androidx/core/view/WindowInsetsCompat\$BuilderImpl.class",
+                                "${layout.buildDirectory.asFile.get()}/intermediates/javac/$variantLowered/compile${variantLowered}JavaWithJavac/classes/androidx/core/view/WindowInsetsCompat\$BuilderImpl20.class",
+                                "${layout.buildDirectory.asFile.get()}/intermediates/javac/$variantLowered/compile${variantLowered}JavaWithJavac/classes/androidx/core/view/WindowInsetsCompat\$BuilderImpl29.class",
+                                "${layout.buildDirectory.asFile.get()}/intermediates/javac/$variantLowered/compile${variantLowered}JavaWithJavac/classes/androidx/core/view/WindowInsetsCompat\$BuilderImpl30.class",
+                                "${layout.buildDirectory.asFile.get()}/intermediates/javac/$variantLowered/compile${variantLowered}JavaWithJavac/classes/androidx/core/view/WindowInsetsCompat\$TypeImpl30.class",
+                                "${layout.buildDirectory.asFile.get()}/intermediates/javac/$variantLowered/compile${variantLowered}JavaWithJavac/classes/androidx/window/layout/util/ContextUtils.class",
+                                "${layout.buildDirectory.asFile.get()}/intermediates/javac/$variantLowered/compile${variantLowered}JavaWithJavac/classes/androidx/window/layout/ContextCompatHelperApi24.class",
+                                "${layout.buildDirectory.asFile.get()}/intermediates/javac/$variantLowered/compile${variantLowered}JavaWithJavac/classes/androidx/window/layout/ContextCompatHelperApi30.class",
+                                "${layout.buildDirectory.asFile.get()}/intermediates/javac/$variantLowered/compile${variantLowered}JavaWithJavac/classes/androidx/window/layout/util/DisplayCompatHelperApi17.class",
+                                "${layout.buildDirectory.asFile.get()}/intermediates/javac/$variantLowered/compile${variantLowered}JavaWithJavac/classes/androidx/window/layout/util/DisplayCompatHelperApi28.class",
+                                "${layout.buildDirectory.asFile.get()}/intermediates/javac/$variantLowered/compile${variantLowered}JavaWithJavac/classes/androidx/window/layout/WindowMetricsCalculator.class",
+                                "${layout.buildDirectory.asFile.get()}/intermediates/javac/$variantLowered/compile${variantLowered}JavaWithJavac/classes/androidx/window/layout/WindowMetricsCalculatorCompat.class",
+                                "${layout.buildDirectory.asFile.get()}/intermediates/javac/$variantLowered/compile${variantLowered}JavaWithJavac/classes/androidx/window/layout/WindowMetrics.class",
+                                "${layout.buildDirectory.asFile.get()}/intermediates/javac/$variantLowered/compile${variantLowered}JavaWithJavac/classes/androidx/window/core/Bounds.class",
+                                "${layout.buildDirectory.asFile.get()}/intermediates/javac/$variantLowered/compile${variantLowered}JavaWithJavac/classes/com/kimjio/umamusumelocalify/Hooker.class",
+                                "${layout.buildDirectory.asFile.get()}/intermediates/javac/$variantLowered/compile${variantLowered}JavaWithJavac/classes/com/kimjio/umamusumelocalify/MethodCallback.class",
+//                                "--classpath",
+//                                "${layout.buildDirectory.asFile.get()}/intermediates/javac/$variantLowered/classes/",
+                                "--no-desugaring",
+                                "--min-api",
+                                minSdkVersion
                     }
                 }
+                into ''
             }
         }
 
@@ -158,9 +208,31 @@ afterEvaluate {
                     "magisk --install-module /data/local/tmp/${zipName}"
         }
 
+        tasks.register("flashKSU${variantCapped}", Exec) {
+            dependsOn("push${variantCapped}")
+            commandLine android.adbExecutable, "shell", "su", "-c",
+                    "ksud module install /data/local/tmp/${zipName}"
+        }
+
+        tasks.register("flashAP${variantCapped}", Exec) {
+            dependsOn("push${variantCapped}")
+            commandLine android.adbExecutable, "shell", "su", "-c",
+                    "apd module install /data/local/tmp/${zipName}"
+        }
+
         tasks.register("flashAndReboot${variantCapped}", Exec) {
             dependsOn("flash${variantCapped}")
-            commandLine android.adbExecutable, "shell", "reboot"
+            commandLine android.adbExecutable, "shell", "reboot", "now"
+        }
+
+        tasks.register("flashKSUAndReboot${variantCapped}", Exec) {
+            dependsOn("flashKSU${variantCapped}")
+            commandLine android.adbExecutable, "shell", "reboot", "now"
+        }
+
+        tasks.register("flashAPAndReboot${variantCapped}", Exec) {
+            dependsOn("flashAP${variantCapped}")
+            commandLine android.adbExecutable, "shell", "reboot", "now"
         }
 
         variant.assembleProvider.get().finalizedBy("zip${variantCapped}")

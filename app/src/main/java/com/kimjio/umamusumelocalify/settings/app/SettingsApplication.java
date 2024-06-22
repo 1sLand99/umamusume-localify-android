@@ -1,10 +1,10 @@
 package com.kimjio.umamusumelocalify.settings.app;
 
 import android.app.Application;
-import android.content.res.Configuration;
 
 import androidx.annotation.OptIn;
 import androidx.window.core.ExperimentalWindowApi;
+import androidx.window.embedding.RuleController;
 import androidx.window.embedding.SplitController;
 
 import com.kimjio.umamusumelocalify.settings.R;
@@ -16,8 +16,8 @@ public class SettingsApplication extends Application {
     @Override
     public void onCreate() {
         super.onCreate();
-        if (getResources().getConfiguration().isLayoutSizeAtLeast(Configuration.SCREENLAYOUT_SIZE_LARGE)) {
-            SplitController.initialize(this, R.xml.split_configuration);
+        if (SplitController.getInstance(this).isSplitAttributesCalculatorSupported()) {
+            RuleController.getInstance(this).setRules(RuleController.parseRules(this, R.xml.split_configuration));
         }
     }
 }

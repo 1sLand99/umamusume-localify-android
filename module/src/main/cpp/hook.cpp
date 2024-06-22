@@ -353,7 +353,7 @@ optional<vector<string>> read_config() {
             g_anti_aliasing = document["antiAliasing"].GetInt();
             vector<int> options = {0, 2, 4, 8, -1};
             g_anti_aliasing =
-                    find(options.begin(), options.end(), g_anti_aliasing) - options.begin();
+                    options[find(options.begin(), options.end(), g_anti_aliasing) - options.begin()];
         }
         if (document.HasMember("forceLandscape")) {
             g_force_landscape = document["forceLandscape"].GetBool();
@@ -422,7 +422,7 @@ optional<vector<string>> read_config() {
             g_cyspring_update_mode = document["cySpringUpdateMode"].GetInt();
             vector<int> options = {0, 1, 2, 3, -1};
             g_cyspring_update_mode =
-                    find(options.begin(), options.end(), g_cyspring_update_mode) - options.begin();
+                    options[find(options.begin(), options.end(), g_cyspring_update_mode) - options.begin()];
         } else if (g_max_fps > 30) {
             g_cyspring_update_mode = 1;
         }
@@ -458,7 +458,7 @@ optional<vector<string>> read_config() {
             g_packet_notifier = document["packetNotifier"].GetString();
         }
 
-        if (Game::currentGameRegion == Game::Region::KOR) {
+        if (Game::CurrentGameRegion == Game::Region::KOR) {
             if (document.HasMember("restoreGallopWebview")) {
                 g_restore_gallop_webview = document["restoreGallopWebview"].GetBool();
             }
