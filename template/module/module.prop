@@ -1,7 +1,7 @@
 id=${id}
-name=${name} - ${api}
+name=${name}
 version=${version}
 versionCode=${versionCode}
 author=${author}
-description=${description} ${requirement}
+description=${description}
 updateJson=${updateJson}

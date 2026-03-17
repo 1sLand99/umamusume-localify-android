@@ -8,12 +8,18 @@ apply from: file(rootProject.file('module.gradle'))
 android {
     flavorDimensions += "api"
 
-    compileSdkVersion = rootProject.ext.targetSdkVersion
-    buildToolsVersion = '34.0.0'
-    ndkVersion '25.2.9519653'
+    compileSdkVersion rootProject.ext.targetSdkVersion
+    buildToolsVersion '36.0.0'
+    ndkVersion '28.2.13676358'
     defaultConfig {
         minSdkVersion rootProject.ext.minSdkVersion
-        targetSdkVersion rootProject.ext.targetSdkVersion
+        externalNativeBuild {
+            cmake {
+                arguments "-DMODULE_NAME:STRING=$moduleLibraryName",
+                        "-DMODULE_VERSION=$moduleVersionCode",
+                        "-DMODULE_VERSION_NAME:STRING=$moduleVersion"
+            }
+        }
     }
     buildFeatures {
         buildConfig true
@@ -22,28 +28,7 @@ android {
     externalNativeBuild {
         cmake {
             path "src/main/cpp/CMakeLists.txt"
-            version "3.22.1"
-        }
-    }
-    productFlavors {
-        configureEach {
-            externalNativeBuild {
-                cmake {
-                    arguments "-DMODULE_NAME:STRING=$moduleLibraryName",
-                            "-DAPI=${name.toLowerCase()}"
-                }
-            }
-            buildConfigField("String", "API", "\"$name\"")
-        }
-
-        register("Zygisk") {
-            dimension = "api"
-            externalNativeBuild {
-                cmake {
-                    arguments += "-DMODULE_VERSION=$moduleVersionCode"
-                    arguments += "-DMODULE_VERSION_NAME:STRING=$moduleVersion"
-                }
-            }
+            version "4.0.3"
         }
     }
     namespace 'com.kimjio.umamusumelocalify'
@@ -54,7 +39,14 @@ android {
         sourceCompatibility JavaVersion.VERSION_17
         targetCompatibility JavaVersion.VERSION_17
     }
+    lint {
+        targetSdk 36
+    }
+    testOptions {
+        targetSdk 36
+    }
 }
+
 
 repositories {
     mavenLocal()
@@ -62,7 +54,7 @@ repositories {
 
 dependencies {
     implementation fileTree(dir: 'libs', include: ['*.jar', '*.aar'])
-    implementation 'androidx.annotation:annotation:1.6.0'
+    implementation 'androidx.annotation:annotation:1.9.1'
 }
 
 afterEvaluate {
@@ -71,18 +63,16 @@ afterEvaluate {
         def variantLowered = variant.name.toLowerCase()
         def buildTypeCapped = variant.buildType.name.capitalize()
         def buildTypeLowered = variant.buildType.name.toLowerCase()
-        def flavorCapped = variant.flavorName.capitalize()
-        def flavorLowered = variant.flavorName.toLowerCase()
 
-        def zipName = "${flavorLowered}-${magiskModuleId.replace('_', '-')}-${moduleVersion}-${buildTypeLowered}.zip"
-        def magiskDir = file("$outDir/magisk_module_${flavorLowered}_${buildTypeLowered}")
+        def zipName = "${magiskModuleId.replace('_', '-')}-${moduleVersion}-${buildTypeLowered}.zip"
+        def moduleDir = file("$outDir/module_${buildTypeLowered}")
 
-        tasks.register("prepareMagiskFiles${variantCapped}", Sync) {
+        tasks.register("prepareModuleFiles${variantCapped}", Sync) {
             dependsOn("assemble$variantCapped")
 
-            def templatePath = "$rootDir/template/magisk_module"
+            def templatePath = "$rootDir/template/module"
 
-            into magiskDir
+            into moduleDir
 
             from(templatePath) {
                 exclude "module.prop", 'system.prop', "customize.sh", "service.sh"
@@ -90,15 +80,13 @@ afterEvaluate {
             from(templatePath) {
                 include 'module.prop'
                 expand([
-                        id         : "${flavorLowered}_${magiskModuleId}",
+                        id         : magiskModuleId,
                         name       : moduleName,
                         version    : moduleVersion,
                         versionCode: moduleVersionCode.toString(),
                         author     : moduleAuthor,
-                        description: "$moduleDescription $flavorCapped version.",
-                        updateJson : "${moduleUpdateJson}-${flavorLowered}.json",
-                        requirement: "Requires Magisk 24.0+ and Zygisk enabled",
-                        api        : flavorCapped
+                        description: "$moduleDescription",
+                        updateJson : "${moduleUpdateJson}.json",
                 ])
                 filter(FixCrLfFilter.class,
                         eol: FixCrLfFilter.CrLf.newInstance("lf"))
@@ -114,7 +102,6 @@ afterEvaluate {
             from(templatePath) {
                 include("customize.sh")
                 filter(ReplaceTokens.class, tokens: [
-                        "FLAVOR"         : flavorLowered,
                         "MODULE_LIB_NAME": moduleLibraryName
                 ])
                 filter(FixCrLfFilter.class,
@@ -123,7 +110,6 @@ afterEvaluate {
             from(templatePath) {
                 include("service.sh")
                 filter(ReplaceTokens.class, tokens: [
-                        "API"            : flavorLowered,
                         "MODULE_ID"      : magiskModuleId,
                         "MODULE_LIB_NAME": moduleLibraryName
                 ])
@@ -136,7 +122,7 @@ afterEvaluate {
             }
 
             from("${layout.buildDirectory.asFile.get()}/intermediates/javac/$variantLowered/") {
-                exclude "compile${variantLowered}JavaWithJavac"
+                exclude "compile${buildTypeCapped}JavaWithJavac", "classes"
                 doFirst {
                     def sdkDir = project.android.sdkDirectory;
                     def buildToolVersion = project.android.buildToolsVersion;
@@ -190,8 +176,8 @@ afterEvaluate {
         }
 
         tasks.register("zip${variantCapped}", Zip) {
-            dependsOn("prepareMagiskFiles${variantCapped}")
-            from magiskDir
+            dependsOn("prepareModuleFiles${variantCapped}")
+            from moduleDir
             archiveFileName = zipName
             destinationDirectory = outDir
         }
