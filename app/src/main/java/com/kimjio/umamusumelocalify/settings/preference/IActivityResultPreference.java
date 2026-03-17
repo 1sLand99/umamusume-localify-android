@@ -22,8 +22,6 @@ public interface IActivityResultPreference {
             if (((ContextThemeWrapper) c).getBaseContext() instanceof Activity)
                 return (Activity) ((ContextThemeWrapper) c).getBaseContext();
         }
-        if (c instanceof Activity)
-            return (Activity) c;
         return null;
     }
 }

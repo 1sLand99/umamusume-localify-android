@@ -75,8 +75,8 @@ public class MainSwitchBar extends LinearLayout implements CompoundButton.OnChec
         setClickable(true);
 
         mFrameView = findViewById(R.id.frame);
-        mTextView = (TextView) findViewById(R.id.switch_text);
-        mSwitch = (SwitchCompat) findViewById(android.R.id.switch_widget);
+        mTextView = findViewById(R.id.switch_text);
+        mSwitch = findViewById(android.R.id.switch_widget);
         mBackgroundOn = AppCompatResources.getDrawable(getContext(), R.drawable.settingslib_switch_bar_bg_on);
         mBackgroundOff = AppCompatResources.getDrawable(getContext(), R.drawable.settingslib_switch_bar_bg_off);
         mBackgroundDisabled = AppCompatResources.getDrawable(getContext(), R.drawable.settingslib_switch_bar_bg_disabled);
@@ -102,7 +102,7 @@ public class MainSwitchBar extends LinearLayout implements CompoundButton.OnChec
     }
 
     @Override
-    public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
+    public void onCheckedChanged(@NonNull CompoundButton buttonView, boolean isChecked) {
         propagateChecked(isChecked);
     }
 

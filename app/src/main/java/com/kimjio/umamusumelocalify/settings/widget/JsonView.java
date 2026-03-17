@@ -26,6 +26,7 @@ import com.kimjio.umamusumelocalify.settings.databinding.JsonItemBinding;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
+import java.io.Serial;
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
@@ -171,7 +172,14 @@ public class JsonView extends RecyclerView {
         if (!enableSaveInstanceState) {
             return super.onSaveInstanceState();
         }
-        SavedState state = new SavedState(super.onSaveInstanceState());
+
+        Parcelable superState = super.onSaveInstanceState();
+
+        if (superState == null) {
+            return null;
+        }
+
+        SavedState state = new SavedState(superState);
         if (getAdapter() instanceof JsonAdapter) {
             state.jsonItemList = ((JsonAdapter) getAdapter()).itemList;
         }
@@ -194,8 +202,7 @@ public class JsonView extends RecyclerView {
             setAdapter(new JsonAdapter());
         }
 
-        if (getAdapter() instanceof JsonAdapter) {
-            JsonAdapter adapter = (JsonAdapter) getAdapter();
+        if (getAdapter() instanceof JsonAdapter adapter) {
             adapter.itemList.addAll(((SavedState) state).jsonItemList);
             adapter.notifyItemInserted(adapter.itemList.size());
         }
@@ -328,6 +335,7 @@ public class JsonView extends RecyclerView {
         }
 
         private static final class NullValue implements Serializable {
+            @Serial
             private static final long serialVersionUID = 1;
         }
     }
@@ -520,7 +528,7 @@ public class JsonView extends RecyclerView {
                     return ((JsonGroupItem<?>) jsonItem).getFlattenItems(false).stream();
                 }
                 return Stream.of(jsonItem);
-            }).collect(Collectors.toList());
+            }).toList();
             itemList.clear();
             itemList.addAll(flatten);
             for (JsonItem<?> item : itemList) {
@@ -637,8 +645,7 @@ public class JsonView extends RecyclerView {
                 holder.binding.expand.setRotation(0);
             }
             holder.itemView.setOnClickListener(v -> {
-                if (item.isExpandable() && item instanceof JsonGroupItem) {
-                    JsonGroupItem<?> groupItem = (JsonGroupItem<?>) item;
+                if (item.isExpandable() && item instanceof JsonGroupItem<?> groupItem) {
                     int currentPos = itemList.indexOf(item);
                     if (!groupItem.expanded) {
                         groupItem.expanded = true;

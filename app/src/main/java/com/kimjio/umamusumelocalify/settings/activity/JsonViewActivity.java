@@ -234,7 +234,7 @@ public class JsonViewActivity extends BaseActivity<JsonViewActivityBinding> {
             return true;
         }
         if (item.getItemId() == R.id.menu_save) {
-            Dialog dialog = new MaterialAlertDialogBuilder(this, R.style.ThemeOverlay_Material3_Dialog_Centered).setIcon(R.drawable.ic_save).setTitle(R.string.save_format_select).setItems(R.array.save_formats, (d, which) -> {
+            Dialog dialog = new MaterialAlertDialogBuilder(this, R.style.ThemeOverlay_Material3Expressive_Dialog_Centered).setIcon(R.drawable.ic_save).setTitle(R.string.save_format_select).setItems(R.array.save_formats, (d, which) -> {
                 saveFile(which);
             }).create();
             float density = getResources().getDisplayMetrics().density;

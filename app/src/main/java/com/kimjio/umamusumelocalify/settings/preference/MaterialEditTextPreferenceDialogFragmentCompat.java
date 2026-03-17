@@ -81,7 +81,7 @@ public class MaterialEditTextPreferenceDialogFragmentCompat extends EditTextPref
             e.printStackTrace();
         }
 
-        final MaterialAlertDialogBuilder builder = new MaterialAlertDialogBuilder(requireContext(), R.style.ThemeOverlay_Material3_Dialog_Centered)
+        final MaterialAlertDialogBuilder builder = new MaterialAlertDialogBuilder(requireContext(), R.style.ThemeOverlay_Material3Expressive_Dialog_Centered)
                 .setTitle(dialogTitle)
                 .setIcon(dialogIcon)
                 .setPositiveButton(positiveButtonText, this)

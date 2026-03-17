@@ -1,18 +1,20 @@
-plugins {
-    id 'com.android.application'
-}
+//plugins {
+//    id 'com.android.application'
+//}
+
+apply plugin: 'com.android.application'
 
 android {
     namespace 'com.kimjio.umamusumelocalify.settings'
-    compileSdk rootProject.ext.targetSdkVersion
-    ndkVersion '25.2.9519653'
+    compileSdkVersion rootProject.ext.targetSdkVersion
+    ndkVersion '28.2.13676358'
 
     defaultConfig {
         applicationId "com.kimjio.umamusumelocalify.settings"
         minSdk rootProject.ext.minSdkVersion
         targetSdk rootProject.ext.targetSdkVersion
-        versionCode 14
-        versionName "1.6.0"
+        versionCode 15
+        versionName "1.6.1"
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -35,13 +37,13 @@ android {
     }
     compileOptions {
         coreLibraryDesugaringEnabled true
-        sourceCompatibility JavaVersion.VERSION_11
-        targetCompatibility JavaVersion.VERSION_11
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
     }
     externalNativeBuild {
         cmake {
             path "src/main/cpp/CMakeLists.txt"
-            version "3.22.1"
+            version "4.0.3"
         }
     }
 }
@@ -49,26 +51,29 @@ android {
 dependencies {
     implementation fileTree(dir: 'libs', include: ['*.jar','*.aar'])
     constraints {
-        implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk7:1.8.0") {
+        implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk7:2.1.20") {
             because("kotlin-stdlib-jdk7 is now a part of kotlin-stdlib")
         }
-        implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk8:1.8.0") {
+        implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk8:2.1.20") {
             because("kotlin-stdlib-jdk8 is now a part of kotlin-stdlib")
         }
     }
-    coreLibraryDesugaring 'com.android.tools:desugar_jdk_libs:2.0.3'
-    implementation 'androidx.appcompat:appcompat:1.7.0-alpha03'
-    implementation 'com.google.android.material:material:1.9.0'
-    implementation 'androidx.constraintlayout:constraintlayout:2.1.4'
+    coreLibraryDesugaring 'com.android.tools:desugar_jdk_libs:2.1.5'
+    implementation 'androidx.appcompat:appcompat:1.7.1'
+    implementation 'com.google.android.material:material:1.14.0-alpha03'
+    implementation 'androidx.constraintlayout:constraintlayout:2.2.1'
     implementation 'androidx.preference:preference:1.2.1'
     implementation 'androidx.swiperefreshlayout:swiperefreshlayout:1.1.0'
-    implementation 'androidx.window:window:1.1.0'
+    implementation 'androidx.window:window:1.4.0'
+    implementation 'androidx.documentfile:documentfile:1.1.0'
     implementation 'it.xabaras.android:recyclerview-swipedecorator:1.4'
-    implementation 'org.msgpack:msgpack-core:0.9.3'
-    implementation 'org.msgpack:jackson-dataformat-msgpack:0.9.3'
-    implementation 'com.blacksquircle.ui:editorkit:2.8.0'
-    implementation 'com.blacksquircle.ui:language-json:2.8.0'
+    implementation 'org.msgpack:msgpack-core:0.9.10'
+    implementation 'org.msgpack:jackson-dataformat-msgpack:0.9.10'
+    implementation 'com.blacksquircle.ui:editorkit:2.9.0'
+    implementation 'com.blacksquircle.ui:language-json:2.9.0'
+    implementation "dev.rikka.shizuku:api:13.1.5"
+    implementation "dev.rikka.shizuku:provider:13.1.5"
     testImplementation 'junit:junit:4.13.2'
-    androidTestImplementation 'androidx.test.ext:junit:1.1.5'
-    androidTestImplementation 'androidx.test.espresso:espresso-core:3.5.1'
+    androidTestImplementation 'androidx.test.ext:junit:1.3.0'
+    androidTestImplementation 'androidx.test.espresso:espresso-core:3.7.0'
 }

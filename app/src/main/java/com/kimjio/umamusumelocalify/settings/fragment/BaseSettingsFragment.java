@@ -105,7 +105,6 @@ public abstract class BaseSettingsFragment extends PreferenceFragmentCompat impl
         if (preference instanceof EditTextPreference) {
             final DialogFragment f;
             f = MaterialEditTextPreferenceDialogFragmentCompat.newInstance(preference.getKey());
-            f.setTargetFragment(this, 0);
             f.show(getParentFragmentManager(), "androidx.preference.PreferenceFragment.DIALOG");
         } else {
             super.onDisplayPreferenceDialog(preference);

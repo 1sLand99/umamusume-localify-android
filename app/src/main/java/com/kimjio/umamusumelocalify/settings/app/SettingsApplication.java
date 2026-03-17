@@ -16,7 +16,7 @@ public class SettingsApplication extends Application {
     @Override
     public void onCreate() {
         super.onCreate();
-        if (SplitController.getInstance(this).isSplitAttributesCalculatorSupported()) {
+        if (SplitController.getInstance(this).getSplitSupportStatus() == SplitController.SplitSupportStatus.SPLIT_AVAILABLE) {
             RuleController.getInstance(this).setRules(RuleController.parseRules(this, R.xml.split_configuration));
         }
     }
