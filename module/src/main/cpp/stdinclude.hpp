@@ -1,36 +1,16 @@
 #pragma once
 
-#include <cstdio>
-#include <bits/get_device_api_level_inlines.h>
-#include <unistd.h>
-#include <sys/system_properties.h>
-#include <dlfcn.h>
-#include <cstdlib>
-#include <cstring>
-#include <cinttypes>
-#include <string>
-#include <array>
-#include <vector>
-#include <sstream>
-#include <fstream>
-#include <dobby.h>
-#include <jni.h>
-#include <pthread.h>
-#include <unordered_map>
+#ifdef _MSC_VER
+#define NOMINMAX
 
-#include <rapidjson/document.h>
-#include <rapidjson/encodings.h>
-#include <rapidjson/istreamwrapper.h>
-#include <rapidjson/stringbuffer.h>
+#include <Windows.h>
+#include <shlobj.h>
+#include <Shlwapi.h>
 
-#include "log.h"
+#include <TlHelp32.h>
 
-#include "fnv1a_hash.hpp"
-
-#include "game.hpp"
-
-#include "il2cpp/il2cpp-class.h"
-
+#include <MinHook.h>
+#else
 #if defined(__ARM_ARCH_7A__)
 #define ABI "armeabi-v7a"
 #elif defined(__i386__)
@@ -43,77 +23,96 @@
 #define ABI "unknown"
 #endif
 
-struct ReplaceAsset {
-    std::string path;
-    Il2CppObject *asset;
-};
+#include <sys/system_properties.h>
+#include <dlfcn.h>
+#include <dobby.h>
+#include <jni.h>
+#include <pthread.h>
 
-using namespace std;
+#include <array>
 
-extern bool g_enable_logger;
-extern int g_max_fps;
-extern float g_ui_animation_scale;
-extern bool g_ui_use_system_resolution;
-extern float g_resolution_3d_scale;
-extern bool g_replace_to_builtin_font;
-extern bool g_replace_to_custom_font;
-extern string g_font_assetbundle_path;
-extern string g_font_asset_name;
-extern string g_tmpro_font_asset_name;
-extern bool g_dump_entries;
-extern bool g_dump_db_entries;
-extern bool g_static_entries_use_hash;
-extern bool g_static_entries_use_text_id_name;
-/**
- * -1 Auto (Default behavior)
- * 0 Toon1280, Anti: 0
- * 1 Toon1280x2, Anti: 2
- * 2 Toon1280x4, Anti: 4
- * 3 ToonFull, Anti: 8
- */
-extern int g_graphics_quality;
-/**
- * -1 Follow graphics quality
- * 0 MSAA OFF
- * 2 x2
- * 4 x4
- * 8 x8
- */
-extern int g_anti_aliasing;
-extern bool g_force_landscape;
-extern float g_force_landscape_ui_scale;
-extern bool g_ui_loading_show_orientation_guide;
-extern bool g_restore_notification;
-extern unordered_map<string, ReplaceAsset> g_replace_assets;
-extern string g_replace_assetbundle_file_path;
-extern string g_replace_text_db_path;
-extern bool g_character_system_text_caption;
-/*
- * ModeNormal 0
- * Mode60FPS 1
- * SkipFrame 2
- * SkipFramePostAlways 3
- */
-extern int g_cyspring_update_mode;
-extern bool g_hide_now_loading;
-extern bool g_dump_msgpack;
-extern bool g_dump_msgpack_request;
-extern string g_packet_notifier;
-extern bool g_restore_gallop_webview;
-extern bool g_use_third_party_news;
+#include "fnv1a_hash.hpp"
 
-namespace {
-    // copy-pasted from https://stackoverflow.com/questions/3418231/replace-part-of-a-string-with-another-string
-    void replaceAll(string &str, const string &from, const string &to) {
-        if (from.empty())
-            return;
-        size_t start_pos = 0;
-        while ((start_pos = str.find(from, start_pos)) != string::npos) {
-            str.replace(start_pos, from.length(), to);
-            start_pos += to.length(); // In case 'to' contains 'from', like replacing 'x' with 'yx'
-        }
-    }
+#include "log.h"
+#endif
 
+#include <cinttypes>
+
+#include <filesystem>
+#include <fstream>
+#include <functional>
+#include <iostream>
+#include <locale>
+#include <string>
+#include <thread>
+#include <unordered_map>
+
+#define RAPIDJSON_HAS_STDSTRING 1
+
+#include <rapidjson/document.h>
+#include <rapidjson/istreamwrapper.h>
+#include <rapidjson/stringbuffer.h>
+
+#include "game.hpp"
+
+#include "experiments.h"
+
+#include "il2cpp/il2cpp_symbols.hpp"
+#include "il2cpp/il2cpp-api-functions.hpp"
+#include "local/local.hpp"
+#include "logger/logger.hpp"
+
+constexpr auto Cryptographer_KEY = "r!I@mt8e5i=";
+
+// Unity App icon
+constexpr auto IDI_APP_ICON = 103;
+
+namespace
+{
+#ifdef _MSC_VER
+	BOOL IsElevated()
+	{
+		BOOL fRet = FALSE;
+		HANDLE hToken = NULL;
+		if (OpenProcessToken(GetCurrentProcess(), TOKEN_QUERY, &hToken))
+		{
+			TOKEN_ELEVATION Elevation{};
+			DWORD cbSize = sizeof(TOKEN_ELEVATION);
+			if (GetTokenInformation(hToken, TokenElevation, &Elevation, sizeof(Elevation), &cbSize))
+			{
+				fRet = Elevation.TokenIsElevated;
+			}
+		}
+		if (hToken)
+		{
+			CloseHandle(hToken);
+		}
+		return fRet;
+	}
+
+	void KillProcessByName(const wchar_t* filename)
+	{
+		HANDLE hSnapShot = CreateToolhelp32Snapshot(TH32CS_SNAPALL, NULL);
+		PROCESSENTRY32 pEntry;
+		pEntry.dwSize = sizeof(pEntry);
+		BOOL hRes = Process32FirstW(hSnapShot, &pEntry);
+		while (hRes)
+		{
+			if (wcscmp(pEntry.szExeFile, filename) == 0)
+			{
+				HANDLE hProcess = OpenProcess(PROCESS_TERMINATE, 0,
+					(DWORD)pEntry.th32ProcessID);
+				if (hProcess != NULL)
+				{
+					TerminateProcess(hProcess, 9);
+					CloseHandle(hProcess);
+				}
+			}
+			hRes = Process32Next(hSnapShot, &pEntry);
+		}
+		CloseHandle(hSnapShot);
+	}
+#else
     int GetAndroidApiLevel() {
         return android_get_device_api_level();
     }
@@ -137,4 +136,5 @@ namespace {
         return ((systemAbi.data() == "x86"s || systemAbi.data() == "x86_64"s) || isaArm.data() == "x86"s) &&
                (ABI == "armeabi-v7a"s || ABI == "arm64-v8a"s);
     }
+#endif
 }

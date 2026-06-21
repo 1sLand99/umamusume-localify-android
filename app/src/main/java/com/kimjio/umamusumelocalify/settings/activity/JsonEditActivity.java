@@ -5,6 +5,7 @@ import android.net.Uri;
 import android.os.Bundle;
 import android.text.Editable;
 import android.text.method.KeyListener;
+import android.util.Log;
 import android.util.TypedValue;
 import android.view.ActionMode;
 import android.view.KeyEvent;
@@ -45,6 +46,8 @@ public class JsonEditActivity extends BaseActivity<JsonEditActivityBinding> {
 
     public static final int RESULT_SAVED = 1;
 
+    private static final String TAG = "JsonEditActivity";
+
     private Uri documentPath;
 
     @Override
@@ -60,6 +63,12 @@ public class JsonEditActivity extends BaseActivity<JsonEditActivityBinding> {
             return;
         }
 
+        Uri path = getIntent().getParcelableExtra(EXTRA_PATH);
+        if (path == null) {
+            finishAfterTransition();
+            return;
+        }
+
         OnApplyWindowInsetsListener listener = (v, insets) -> {
             int bottomInsets = insets.getInsets(WindowInsetsCompat.Type.navigationBars()).bottom;
             binding.code.setPaddingRelative(0, 0, 0, bottomInsets);
@@ -71,10 +80,8 @@ public class JsonEditActivity extends BaseActivity<JsonEditActivityBinding> {
 
         ViewCompat.setOnApplyWindowInsetsListener(binding.getRoot(), listener);
 
-
-        Uri path = getIntent().getParcelableExtra(EXTRA_PATH);
         DocumentFile documentFile = DocumentFile.fromSingleUri(this, path);
-        if (documentFile != null && documentFile.exists()) {
+        if (documentFile.exists()) {
             setTitle(documentFile.getName());
             new Thread(() -> {
                 documentPath = documentFile.getUri();
@@ -165,11 +172,11 @@ public class JsonEditActivity extends BaseActivity<JsonEditActivityBinding> {
                                 binding.code.setCustomSelectionActionModeCallback(callback);
                             }
                         } catch (JSONException e) {
-                            e.printStackTrace();
+                            Log.w(TAG, "onCreate", e);
                         }
                     });
                 } catch (JSONException | IOException e) {
-                    e.printStackTrace();
+                    Log.w(TAG, "onCreate", e);
                     runOnUiThread(this::finishAfterTransition);
                 }
             }).start();
@@ -195,6 +202,10 @@ public class JsonEditActivity extends BaseActivity<JsonEditActivityBinding> {
 
     private void saveFIle() {
         try (OutputStream os = getContentResolver().openOutputStream(documentPath, "wt")) {
+            if (os != null) {
+                return;
+            }
+
             String text = binding.code.getText().toString();
             new ObjectMapper().readTree(text);
             Writer writer = new PrintWriter(os);
@@ -205,7 +216,7 @@ public class JsonEditActivity extends BaseActivity<JsonEditActivityBinding> {
         } catch (JsonProcessingException e) {
             Toast.makeText(this, e.getLocalizedMessage(), Toast.LENGTH_SHORT).show();
         } catch (IOException e) {
-            e.printStackTrace();
+            Log.w(TAG, "saveFIle", e);
         }
     }
 }

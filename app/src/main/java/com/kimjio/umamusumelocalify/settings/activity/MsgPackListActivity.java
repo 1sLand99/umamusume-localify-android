@@ -163,19 +163,15 @@ public class MsgPackListActivity extends BaseActivity<MsgPackListActivityBinding
                                         boolean result = true;
                                         for (MsgPackFile file : ((MsgPackGroup) item).filtered) {
                                             DocumentFile documentFile = DocumentFile.fromSingleUri(MsgPackListActivity.this, file.path);
-                                            if (documentFile != null) {
-                                                result = result && documentFile.delete();
-                                            }
+                                            result = result && documentFile.delete();
                                         }
                                         if (!result && BuildConfig.DEBUG) {
                                             Log.w(TAG, "Delete failed group: ".concat(((MsgPackGroup) item).date));
                                         }
                                     } else if (item instanceof MsgPackFile) {
-                                        boolean result = false;
+                                        boolean result;
                                         DocumentFile documentFile = DocumentFile.fromSingleUri(MsgPackListActivity.this, ((MsgPackFile) item).path);
-                                        if (documentFile != null) {
-                                            result = documentFile.delete();
-                                        }
+                                        result = documentFile.delete();
                                         if (!result && BuildConfig.DEBUG) {
                                             Log.w(TAG, "Delete failed: ".concat(((MsgPackFile) item).fileName));
                                         }
@@ -357,20 +353,22 @@ public class MsgPackListActivity extends BaseActivity<MsgPackListActivityBinding
                 return new MsgPackGroup[size];
             }
         };
+        @NonNull
         public final String date;
+        @NonNull
         public final List<MsgPackFile> files;
         public List<MsgPackFile> filtered;
         public boolean expanded = false;
 
-        public MsgPackGroup(String date, List<MsgPackFile> files) {
+        public MsgPackGroup(@NonNull String date, @NonNull List<MsgPackFile> files) {
             this.date = date;
             this.files = files;
             this.filtered = new ArrayList<>(files);
         }
 
         protected MsgPackGroup(Parcel in) {
-            date = in.readString();
-            files = in.createTypedArrayList(MsgPackFile.CREATOR);
+            date = Objects.requireNonNull(in.readString());
+            files = Objects.requireNonNull(in.createTypedArrayList(MsgPackFile.CREATOR));
             filtered = in.createTypedArrayList(MsgPackFile.CREATOR);
             expanded = in.readInt() == 1;
         }
@@ -411,25 +409,22 @@ public class MsgPackListActivity extends BaseActivity<MsgPackListActivityBinding
                 return new MsgPackFile[size];
             }
         };
+        @NonNull
         public final String fileName;
         public final Uri path;
         public final long timestamp;
         public final long length;
 
-        public MsgPackFile(String fileName, Uri path, long length) {
+        public MsgPackFile(@NonNull String fileName, Uri path, long length) {
             this.fileName = fileName;
             this.path = path;
-            if (fileName != null) {
-                String fileNameWithoutExtension = fileName.split(".msgpack")[0];
-                timestamp = Long.parseLong(fileNameWithoutExtension.substring(0, fileNameWithoutExtension.length() - 1));
-            } else {
-                timestamp = -1;
-            }
+            String fileNameWithoutExtension = fileName.split(".msgpack")[0];
+            timestamp = Long.parseLong(fileNameWithoutExtension.substring(0, fileNameWithoutExtension.length() - 1));
             this.length = length;
         }
 
         protected MsgPackFile(Parcel in) {
-            fileName = in.readString();
+            fileName = Objects.requireNonNull(in.readString());
             path = in.readParcelable(Uri.class.getClassLoader());
             timestamp = in.readLong();
             length = in.readLong();
@@ -470,8 +465,7 @@ public class MsgPackListActivity extends BaseActivity<MsgPackListActivityBinding
         @Override
         public void onBindViewHolder(@NonNull MsgPackViewHolder holder, int position) {
             Object obj = filtered.get(position);
-            if (obj instanceof MsgPackFile) {
-                MsgPackFile file = (MsgPackFile) obj;
+            if (obj instanceof MsgPackFile file) {
                 if (file.timestamp > 0) {
                     holder.binding.fileName.setText(new SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault()).format(new Date(file.timestamp)));
                 }
@@ -481,13 +475,13 @@ public class MsgPackListActivity extends BaseActivity<MsgPackListActivityBinding
                 holder.binding.fileLength.setText(FileUtils.getHumanReadableByte(file.length));
                 holder.binding.expand.setVisibility(View.GONE);
                 holder.itemView.setOnClickListener(v -> activity.get().startActivity(new Intent(activity.get(), JsonViewActivity.class).putExtra(EXTRA_PATH, file.path).putExtra(JsonViewActivity.EXTRA_POSITION, position).putExtra(JsonViewActivity.EXTRA_DATETIME, holder.binding.fileName.getText()).putExtra(JsonViewActivity.EXTRA_TYPE, file.fileName.endsWith("R.msgpack") ? 1 : 0)));
-            } else if (obj instanceof MsgPackGroup) {
-                holder.binding.fileName.setText(((MsgPackGroup) obj).date);
+            } else if (obj instanceof MsgPackGroup group) {
+                holder.binding.fileName.setText(group.date);
                 holder.binding.type.setVisibility(View.GONE);
                 holder.binding.type.setText(null);
                 holder.binding.icon.setImageDrawable(AppCompatResources.getDrawable(holder.itemView.getContext(), R.drawable.ic_date_range));
-                holder.binding.fileLength.setText(String.valueOf(((MsgPackGroup) obj).filtered.size()));
-                if (((MsgPackGroup) obj).expanded) {
+                holder.binding.fileLength.setText(String.valueOf(group.filtered.size()));
+                if (group.expanded) {
                     holder.binding.expand.setRotation(180);
                 } else {
                     holder.binding.expand.setRotation(0);
@@ -495,7 +489,6 @@ public class MsgPackListActivity extends BaseActivity<MsgPackListActivityBinding
                 holder.binding.expand.setVisibility(View.VISIBLE);
                 holder.itemView.setOnClickListener(v -> {
                     int currentPos = filtered.indexOf(obj);
-                    MsgPackGroup group = (MsgPackGroup) obj;
                     if (!group.expanded) {
                         group.expanded = true;
                         filtered.addAll(currentPos + 1, group.filtered);
@@ -537,7 +530,7 @@ public class MsgPackListActivity extends BaseActivity<MsgPackListActivityBinding
                             return filtered.stream();
                         }
                         return Stream.of(obj);
-                    }).collect(Collectors.toList()));
+                    }).toList());
                     break;
                 case RESPONSE:
                     filtered.addAll(list.stream().map(obj -> {
@@ -552,7 +545,7 @@ public class MsgPackListActivity extends BaseActivity<MsgPackListActivityBinding
                             return filtered.stream();
                         }
                         return Stream.of(obj);
-                    }).collect(Collectors.toList()));
+                    }).toList());
                     break;
                 case REQUEST:
                     filtered.addAll(list.stream().map(obj -> {
@@ -567,7 +560,7 @@ public class MsgPackListActivity extends BaseActivity<MsgPackListActivityBinding
                             return filtered.stream();
                         }
                         return Stream.of(obj);
-                    }).collect(Collectors.toList()));
+                    }).toList());
                     break;
             }
             notifyItemRangeInserted(0, filtered.size());
@@ -623,7 +616,7 @@ public class MsgPackListActivity extends BaseActivity<MsgPackListActivityBinding
                                 activity.get().binding.progressText.setText(String.format(Locale.getDefault(), "%d / %d", i.get(), fileArray.length));
                             });
                         }
-                        return new MsgPackFile(documentFile.getName(), documentFile.getUri(), documentFile.length());
+                        return new MsgPackFile(Objects.requireNonNull(documentFile.getName()), documentFile.getUri(), documentFile.length());
                     })).filter(file -> Objects.nonNull(file.fileName)).sorted((a, b) -> (int) (a.timestamp - b.timestamp)).collect(Collectors.groupingBy(file -> new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(new Date(file.timestamp))));
                     viewModel.groups = filesMap.entrySet().stream().map(entry -> new MsgPackGroup(entry.getKey(), entry.getValue())).sorted(Comparator.comparing(a -> a.date)).collect(Collectors.toList());
                 }

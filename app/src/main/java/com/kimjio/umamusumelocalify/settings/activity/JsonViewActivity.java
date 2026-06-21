@@ -1,14 +1,15 @@
 package com.kimjio.umamusumelocalify.settings.activity;
 
 import android.app.Dialog;
-import android.content.res.Configuration;
 import android.graphics.drawable.Drawable;
 import android.graphics.drawable.LayerDrawable;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.view.Window;
 import android.view.WindowManager;
 import android.widget.Toast;
 
@@ -41,6 +42,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -48,6 +50,8 @@ public class JsonViewActivity extends BaseActivity<JsonViewActivityBinding> {
     public static final String EXTRA_DATETIME = "datetime";
     public static final String EXTRA_TYPE = "type";
     public static final String EXTRA_POSITION = "position";
+
+    private static final String TAG = "JsonViewActivity";
 
     private DocumentFile documentFile;
 
@@ -72,8 +76,16 @@ public class JsonViewActivity extends BaseActivity<JsonViewActivityBinding> {
             }
             saveThread = new Thread(() -> {
                 try (InputStream is = getContentResolver().openInputStream(documentFile.getUri())) {
+                    if (is == null) {
+                        return;
+                    }
+
                     long size = documentFile.length();
                     try (OutputStream os = getContentResolver().openOutputStream(result, "wt")) {
+                        if (os == null) {
+                            return;
+                        }
+
                         final AtomicInteger i = new AtomicInteger(0);
                         byte[] buf = new byte[1024];
                         int length;
@@ -98,10 +110,10 @@ public class JsonViewActivity extends BaseActivity<JsonViewActivityBinding> {
                             });
                         }
                     } catch (IOException e) {
-                        e.printStackTrace();
+                        Log.w(TAG, "saveMsgPack", e);
                     }
                 } catch (IOException e) {
-                    e.printStackTrace();
+                    Log.w(TAG, "saveMsgPack", e);
                 }
             });
             saveThread.start();
@@ -127,6 +139,10 @@ public class JsonViewActivity extends BaseActivity<JsonViewActivityBinding> {
             }
             saveThread = new Thread(() -> {
                 try (OutputStream os = getContentResolver().openOutputStream(result, "wt")) {
+                    if (os == null) {
+                        return;
+                    }
+
                     String json = viewModel.jsonObject.toString(4) + "\n";
                     os.write(json.getBytes());
                     os.flush();
@@ -135,11 +151,11 @@ public class JsonViewActivity extends BaseActivity<JsonViewActivityBinding> {
                             Toast.makeText(this, R.string.save_ok, Toast.LENGTH_SHORT).show();
                             drawable.hideNow();
                             saveMenu.setEnabled(true);
-                            saveMenu.setIcon(((LayerDrawable) saveMenu.getIcon()).getDrawable(0));
+                            saveMenu.setIcon(((LayerDrawable) Objects.requireNonNull(saveMenu.getIcon())).getDrawable(0));
                         });
                     }
                 } catch (JSONException | IOException e) {
-                    e.printStackTrace();
+                    Log.w(TAG, "saveJson", e);
                 }
             });
             saveThread.start();
@@ -184,8 +200,12 @@ public class JsonViewActivity extends BaseActivity<JsonViewActivityBinding> {
             binding.json.setAdapter(viewModel.adapter);
         } else {
             Uri path = getIntent().getParcelableExtra(EXTRA_PATH);
+            if (path == null) {
+                return;
+            }
+
             documentFile = DocumentFile.fromSingleUri(this, path);
-            if (documentFile != null && documentFile.exists()) {
+            if (documentFile.exists()) {
                 new Thread(() -> {
                     try (InputStream is = getContentResolver().openInputStream(documentFile.getUri())) {
                         ObjectMapper mapper = new MessagePackMapper();
@@ -193,12 +213,12 @@ public class JsonViewActivity extends BaseActivity<JsonViewActivityBinding> {
                         });
                         viewModel.jsonObject = new JSONObject(unpacked);
                         runOnUiThread(() -> {
-                            boolean isNight = (getResources().getConfiguration().uiMode & Configuration.UI_MODE_NIGHT_MASK) == Configuration.UI_MODE_NIGHT_YES;
+                            // boolean isNight = (getResources().getConfiguration().uiMode & Configuration.UI_MODE_NIGHT_MASK) == Configuration.UI_MODE_NIGHT_YES;
                             binding.json.setJSONObject(viewModel.jsonObject);
                             viewModel.adapter = binding.json.getAdapter();
                         });
                     } catch (IOException e) {
-                        e.printStackTrace();
+                        Log.w(TAG, "onCreate", e);
                         runOnUiThread(this::finishAfterTransition);
                     }
                 }).start();
@@ -234,13 +254,14 @@ public class JsonViewActivity extends BaseActivity<JsonViewActivityBinding> {
             return true;
         }
         if (item.getItemId() == R.id.menu_save) {
-            Dialog dialog = new MaterialAlertDialogBuilder(this, R.style.ThemeOverlay_Material3Expressive_Dialog_Centered).setIcon(R.drawable.ic_save).setTitle(R.string.save_format_select).setItems(R.array.save_formats, (d, which) -> {
-                saveFile(which);
-            }).create();
+            Dialog dialog = new MaterialAlertDialogBuilder(this, R.style.ThemeOverlay_Material3Expressive_Dialog_Centered).setIcon(R.drawable.ic_save).setTitle(R.string.save_format_select).setItems(R.array.save_formats, (d, which) -> saveFile(which)).create();
             float density = getResources().getDisplayMetrics().density;
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-                dialog.getWindow().addFlags(WindowManager.LayoutParams.FLAG_BLUR_BEHIND);
-                dialog.getWindow().getAttributes().setBlurBehindRadius((int) (density * 16.0f));
+                Window window = dialog.getWindow();
+                if (window != null) {
+                    window.addFlags(WindowManager.LayoutParams.FLAG_BLUR_BEHIND);
+                    window.getAttributes().setBlurBehindRadius((int) (density * 16.0f));
+                }
             }
             dialog.show();
             return true;

@@ -1,6 +1,3 @@
-//
-// Created by kimji on 2022-12-28.
-//
 /*
  * Copyright (C) 2014 The Android Open Source Project
  *
@@ -17,10 +14,9 @@
  * limitations under the License.
  */
 
-#include <stdint.h>
+#pragma once
 
-#ifndef UMAMUSUMELOCALIFYANDROID_NATIVE_BRIDGE_ITF_H
-#define UMAMUSUMELOCALIFYANDROID_NATIVE_BRIDGE_ITF_H
+#include <stdint.h>
 
 // Function pointer type for sigaction. This is mostly the signature of a signal handler, except
 // for the return type. The runtime needs to know whether the signal was handled or should be given
@@ -236,5 +232,3 @@ struct NativeBridgeCallbacks {
     // required to clean-up the environment before the fork (see b/146904103).
     void (*preZygoteFork)();
 };
-
-#endif //UMAMUSUMELOCALIFYANDROID_NATIVE_BRIDGE_ITF_H

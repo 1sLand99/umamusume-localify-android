@@ -57,13 +57,17 @@ public class MainActivity extends BaseActivity<MainActivityBinding> {
     private final ActivityResultLauncher<Uri> requestDocumentTree = registerForActivityResult(
             new ActivityResultContracts.OpenDocumentTree(), result -> {
                 if (result != null) {
-                    if (!result.getPath().endsWith("Android/data/" + currentPackageName)) {
+                    String path = result.getPath();
+
+                    if (path == null) {
+                        return;
+                    }
+
+                    if (!path.endsWith("Android/data/" + currentPackageName)) {
                         showWrongPathDialog();
                         return;
                     }
-                    getContentResolver().takePersistableUriPermission(result,
-                            Intent.FLAG_GRANT_READ_URI_PERMISSION |
-                                    Intent.FLAG_GRANT_WRITE_URI_PERMISSION);
+                    getContentResolver().takePersistableUriPermission(result, Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_GRANT_WRITE_URI_PERMISSION);
                     preferences.edit().putString(currentPackageName, result.toString()).apply();
                     initFragment(DocumentFile.fromTreeUri(this, result));
                 } else {
@@ -92,8 +96,7 @@ public class MainActivity extends BaseActivity<MainActivityBinding> {
         List<PackageInfo> packageInfoList = getPackageManager()
                 .getInstalledPackages(PackageManager.GET_META_DATA)
                 .stream()
-                .filter(item -> ((item.applicationInfo.flags & ApplicationInfo.FLAG_SYSTEM) == 0) &&
-                        !item.packageName.equals(BuildConfig.APPLICATION_ID))
+                .filter(item -> item.applicationInfo != null && ((item.applicationInfo.flags & ApplicationInfo.FLAG_SYSTEM) == 0) && !item.packageName.equals(BuildConfig.APPLICATION_ID))
                 .filter(item -> Constants.targetPackageNames.contains(item.packageName))
                 .collect(Collectors.toList());
 

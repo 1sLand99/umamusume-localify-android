@@ -5,6 +5,7 @@ import android.graphics.Color;
 import android.graphics.drawable.ColorDrawable;
 import android.os.Build;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.Window;
@@ -29,10 +30,10 @@ import java.util.function.Consumer;
 
 public abstract class BaseActivity<VB extends ViewDataBinding> extends AppCompatActivity {
     public static final String EXTRA_PACKAGE_NAME = "package_name";
-
     public static final String EXTRA_PATH = "path";
-
     public static final String EXTRA_CONFIG_PATH = "config_path";
+
+    private static final String TAG = "BaseActivity";
 
     protected VB binding;
 
@@ -80,15 +81,13 @@ public abstract class BaseActivity<VB extends ViewDataBinding> extends AppCompat
             window.getDecorView().addOnAttachStateChangeListener(
                     new View.OnAttachStateChangeListener() {
                         @Override
-                        public void onViewAttachedToWindow(View v) {
-                            getWindowManager().addCrossWindowBlurEnabledListener(
-                                    crossWindowBlurEnabledListener);
+                        public void onViewAttachedToWindow(@NonNull View v) {
+                            getWindowManager().addCrossWindowBlurEnabledListener(crossWindowBlurEnabledListener);
                         }
 
                         @Override
-                        public void onViewDetachedFromWindow(View v) {
-                            getWindowManager().removeCrossWindowBlurEnabledListener(
-                                    crossWindowBlurEnabledListener);
+                        public void onViewDetachedFromWindow(@NonNull View v) {
+                            getWindowManager().removeCrossWindowBlurEnabledListener(crossWindowBlurEnabledListener);
                         }
                     });
         }
@@ -129,7 +128,7 @@ public abstract class BaseActivity<VB extends ViewDataBinding> extends AppCompat
         try {
             return R.layout.class.getField(name.toString()).getInt(R.layout.class);
         } catch (IllegalAccessException | NoSuchFieldException e) {
-            e.printStackTrace();
+            Log.w(TAG, "getLayoutRes", e);
         }
 
         return 0;

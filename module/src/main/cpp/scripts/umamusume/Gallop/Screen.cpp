@@ -1,0 +1,463 @@
+#include "../umamusume.hpp"
+#include "../../ScriptInternal.hpp"
+#include "Screen.hpp"
+#include "scripts/UnityEngine.CoreModule/UnityEngine/Display.hpp"
+#include "scripts/UnityEngine.CoreModule/UnityEngine/Screen.hpp"
+
+#include "UIManager.hpp"
+
+#ifdef _MSC_VER
+#include "StandaloneWindowResize.hpp"
+#endif
+
+#include "config/config.hpp"
+
+namespace
+{
+	Il2CppClass* ScreenClass = nullptr;
+
+	Il2CppMethodPointer get_Width_addr = nullptr;
+	void* get_Width_orig = nullptr;
+
+	Il2CppMethodPointer get_Height_addr = nullptr;
+	void* get_Height_orig = nullptr;
+
+	Il2CppMethodPointer Setup_addr = nullptr;
+	void* Setup_orig = nullptr;
+
+	Il2CppMethodPointer UpdateOriginalScreenSize_addr = nullptr;
+
+	Il2CppMethodPointer WaitDeviceOrientation_addr = nullptr;
+	void* WaitDeviceOrientation_orig = nullptr;
+
+	Il2CppMethodPointer IsCurrentOrientation_addr = nullptr;
+	void* IsCurrentOrientation_orig = nullptr;
+
+	Il2CppMethodPointer SetResolution_addr = nullptr;
+	void* SetResolution_orig = nullptr;
+
+	Il2CppMethodPointer SetResolution2_addr = nullptr;
+	void* SetResolution2_orig = nullptr;
+
+	Il2CppMethodPointer get_OriginalScreenWidth_addr = nullptr;
+	void* get_OriginalScreenWidth_orig = nullptr;
+
+	Il2CppMethodPointer set_OriginalScreenWidth_addr = nullptr;
+	void* set_OriginalScreenWidth_orig = nullptr;
+
+	Il2CppMethodPointer get_OriginalScreenHeight_addr = nullptr;
+	void* get_OriginalScreenHeight_orig = nullptr;
+
+	Il2CppMethodPointer set_OriginalScreenHeight_addr = nullptr;
+	void* set_OriginalScreenHeight_orig = nullptr;
+
+	Il2CppMethodPointer get_IsLandscapeMode_addr = nullptr;
+
+	Il2CppMethodPointer get_IsSplitWindow_addr = nullptr;
+
+	Il2CppMethodPointer ChangeScreenOrientation_addr = nullptr;
+	void* ChangeScreenOrientation_orig = nullptr;
+
+	Il2CppMethodPointer ChangeScreenOrientationLandscapeAsync_addr = nullptr;
+	void* ChangeScreenOrientationLandscapeAsync_orig = nullptr;
+
+	Il2CppMethodPointer ChangeScreenOrientationLandscapeAsyncDefault_addr = nullptr;
+	void* ChangeScreenOrientationLandscapeAsyncDefault_orig = nullptr;
+
+	Il2CppMethodPointer ChangeScreenOrientationLandscapeAsyncLandscapeMode_addr = nullptr;
+	void* ChangeScreenOrientationLandscapeAsyncLandscapeMode_orig = nullptr;
+
+	Il2CppMethodPointer ChangeScreenOrientationPortraitAsync_addr = nullptr;
+	void* ChangeScreenOrientationPortraitAsync_orig = nullptr;
+
+	Il2CppMethodPointer ChangeScreenOrientationPortraitAsyncDefault_addr = nullptr;
+	void* ChangeScreenOrientationPortraitAsyncDefault_orig = nullptr;
+
+	Il2CppMethodPointer ChangeScreenOrientationPortraitAsyncLandscapeMode_addr = nullptr;
+	void* ChangeScreenOrientationPortraitAsyncLandscapeMode_orig = nullptr;
+
+	Il2CppMethodPointer get_IsVertical_addr = nullptr;
+	void* get_IsVertical_orig = nullptr;
+}
+
+static int get_Width_hook()
+{
+	if (!config::freeform_window)
+	{
+		int width;
+		int height;
+		
+		if (config::initial_width >= 72 && config::initial_height >= 72)
+		{
+			width = config::initial_width;
+			height = config::initial_height;
+		}
+		else
+		{
+			width = UnityEngine::Display::main().systemWidth();
+#ifdef _MSC_VER
+			height = width * ratio_9_16;
+#else
+			height = UnityEngine::Display::main().systemHeight();
+#endif
+		}
+
+		if (Gallop::UIManager::IsLandscapeMode())
+		{
+			if (Gallop::Screen::IsVertical())
+			{
+				return width * ratio_3_4;
+			}
+
+			return width;
+		}
+
+		int w = UnityEngine::Screen::width();
+		int h = UnityEngine::Screen::height();
+
+		return w > h ? width : height;
+	}
+
+	return UnityEngine::Screen::width();
+}
+
+static int get_Height_hook()
+{
+	if (!config::freeform_window)
+	{
+		int width;
+		int height;
+
+		if (config::initial_width >= 72 && config::initial_height >= 72)
+		{
+			width = config::initial_width;
+			height = config::initial_height;
+		}
+		else
+		{
+			width = UnityEngine::Display::main().systemWidth();
+#ifdef _MSC_VER
+			height = width * ratio_9_16;
+#else
+			height = UnityEngine::Display::main().systemHeight();
+#endif
+		}
+
+		if (Gallop::UIManager::IsLandscapeMode())
+		{
+			if (Gallop::Screen::IsVertical())
+			{
+				return width;
+			}
+
+			return height;
+		}
+
+		int w = UnityEngine::Screen::width();
+		int h = UnityEngine::Screen::height();
+
+		return w > h ? height : width;
+	}
+
+	return UnityEngine::Screen::height();
+}
+
+static void Setup_hook()
+{
+	UnityEngine::Screen::autorotateToPortrait(true);
+	UnityEngine::Screen::autorotateToPortraitUpsideDown(true);
+	UnityEngine::Screen::autorotateToLandscapeLeft(true);
+    UnityEngine::Screen::autorotateToLandscapeRight(true);
+	UnityEngine::Screen::RequestOrientation(ScreenOrientation::AutoRotation);
+	Gallop::Screen::UpdateOriginalScreenSize();
+}
+
+static Il2CppObject* WaitDeviceOrientation_hook(UnityEngine::ScreenOrientation target)
+{
+	if (config::freeform_window)
+	{
+		auto yield = il2cpp_object_new(il2cpp_symbols::get_class("UnityEngine.CoreModule.dll", "UnityEngine", "WaitWhile"));
+		il2cpp_symbols::get_method_pointer<void (*)(Il2CppObject*, Il2CppDelegate*)>(yield->klass, ".ctor", 1)(yield, CreateDelegateStatic(*[]() { return false; }));
+		return yield;
+	}
+	return reinterpret_cast<decltype(WaitDeviceOrientation_hook)*>(WaitDeviceOrientation_orig)(target);
+}
+
+static bool IsCurrentOrientation_hook(UnityEngine::ScreenOrientation target)
+{
+	return true;
+}
+
+static void SetResolution_hook(int w, int h, bool fullscreen, bool forceUpdate)
+{
+	LOGD("SetResolution_hook: %d, %d, %d, %d", w, h, fullscreen, forceUpdate);
+	PrintStackTrace();
+}
+
+static void SetResolution2_hook(int w, int h, bool fullscreen, bool forceUpdate, bool skipKeepAspect)
+{
+	LOGD("SetResolution2_hook: %d, %d, %d, %d, %d", w, h, fullscreen, forceUpdate, skipKeepAspect);
+	PrintStackTrace();
+}
+
+static int get_OriginalScreenWidth_hook()
+{
+#ifdef _MSC_VER
+	auto widthField = il2cpp_class_get_field_from_name(ScreenClass, "_originalScreenWidth");
+	int _originalScreenWidth;
+	il2cpp_field_static_get_value(widthField, &_originalScreenWidth);
+
+	auto heightField = il2cpp_class_get_field_from_name(ScreenClass, "_originalScreenHeight");
+	int _originalScreenHeight;
+	il2cpp_field_static_get_value(heightField, &_originalScreenHeight);
+
+	if (Gallop::Screen::IsSplitWindow())
+	{
+		return _originalScreenHeight * ratio_3_4;
+	}
+
+	if (Gallop::Screen::IsVertical())
+	{
+		return _originalScreenHeight;
+	}
+
+	return _originalScreenWidth;
+#else
+	return UnityEngine::Screen::width();
+#endif
+}
+
+static void set_OriginalScreenWidth_hook(int value)
+{
+	auto widthField = il2cpp_class_get_field_from_name(ScreenClass, "_originalScreenWidth");
+	il2cpp_field_static_set_value(widthField, &value);
+}
+
+static int get_OriginalScreenHeight_hook()
+{
+#ifdef _MSC_VER
+	auto heightField = il2cpp_class_get_field_from_name(ScreenClass, "_originalScreenHeight");
+	int _originalScreenHeight;
+	il2cpp_field_static_get_value(heightField, &_originalScreenHeight);
+
+	auto widthField = il2cpp_class_get_field_from_name(ScreenClass, "_originalScreenWidth");
+	int _originalScreenWidth;
+	il2cpp_field_static_get_value(widthField, &_originalScreenWidth);
+
+	if (Gallop::Screen::IsVertical())
+	{
+		return _originalScreenWidth;
+	}
+
+	return _originalScreenHeight;
+#else
+	return UnityEngine::Screen::height();
+#endif
+}
+
+static void set_OriginalScreenHeight_hook(int value)
+{
+	auto heightField = il2cpp_class_get_field_from_name(ScreenClass, "_originalScreenHeight");
+	il2cpp_field_static_set_value(heightField, &value);
+}
+
+static Il2CppObject* ChangeScreenOrientation_hook(UnityEngine::ScreenOrientation targetOrientation, bool isForce)
+{
+	if (config::freeform_window)
+	{
+		auto yield = il2cpp_object_new(il2cpp_symbols::get_class("UnityEngine.CoreModule.dll", "UnityEngine", "WaitWhile"));
+		il2cpp_symbols::get_method_pointer<void (*)(Il2CppObject*, Il2CppDelegate*)>(yield->klass, ".ctor", 1)(yield, CreateDelegateStatic(*[]() { return false; }));
+		return yield;
+	}
+
+	return reinterpret_cast<decltype(ChangeScreenOrientation_hook)*>(ChangeScreenOrientation_orig)(targetOrientation, isForce);
+}
+
+static Il2CppObject* ChangeScreenOrientationLandscapeAsync_hook()
+{
+	if (config::freeform_window)
+	{
+		auto yield = il2cpp_object_new(il2cpp_symbols::get_class("UnityEngine.CoreModule.dll", "UnityEngine", "WaitWhile"));
+		il2cpp_symbols::get_method_pointer<void (*)(Il2CppObject*, Il2CppDelegate*)>(yield->klass, ".ctor", 1)(yield, CreateDelegateStatic(*[]() { return false; }));
+		return yield;
+	}
+
+	return reinterpret_cast<decltype(ChangeScreenOrientationLandscapeAsync_hook)*>(ChangeScreenOrientationLandscapeAsync_orig)();
+}
+
+static Il2CppObject* ChangeScreenOrientationPortraitAsync_hook()
+{
+	if (config::freeform_window)
+	{
+		auto yield = il2cpp_object_new(il2cpp_symbols::get_class("UnityEngine.CoreModule.dll", "UnityEngine", "WaitWhile"));
+		il2cpp_symbols::get_method_pointer<void (*)(Il2CppObject*, Il2CppDelegate*)>(yield->klass, ".ctor", 1)(yield, CreateDelegateStatic(*[]() { return false; }));
+		return yield;
+	}
+
+	return reinterpret_cast<decltype(ChangeScreenOrientationPortraitAsync_hook)*>(ChangeScreenOrientationPortraitAsync_orig)();
+}
+
+static void InitAddress()
+{
+	ScreenClass = il2cpp_symbols::get_class(ASSEMBLY_NAME, "Gallop", "Screen");
+	get_Width_addr = il2cpp_symbols::get_method_pointer(ASSEMBLY_NAME, "Gallop", "Screen", "get_Width", 0);
+	get_Height_addr = il2cpp_symbols::get_method_pointer(ASSEMBLY_NAME, "Gallop", "Screen", "get_Height", 0);
+    Setup_addr = il2cpp_symbols::get_method_pointer(ASSEMBLY_NAME, "Gallop", "Screen", "Setup", 0);
+    UpdateOriginalScreenSize_addr = il2cpp_symbols::get_method_pointer(ASSEMBLY_NAME, "Gallop", "Screen", "UpdateOriginalScreenSize", 0);
+	WaitDeviceOrientation_addr = il2cpp_symbols::get_method_pointer(ASSEMBLY_NAME, "Gallop", "Screen", "WaitDeviceOrientation", 1);
+	IsCurrentOrientation_addr = il2cpp_symbols::get_method_pointer(ASSEMBLY_NAME, "Gallop", "Screen", "IsCurrentOrientation", 1);
+	SetResolution_addr = il2cpp_symbols::get_method_pointer(ASSEMBLY_NAME, "Gallop", "Screen", "SetResolution", 4);
+	SetResolution2_addr = il2cpp_symbols::get_method_pointer(ASSEMBLY_NAME, "Gallop", "Screen", "SetResolution", 5);
+	get_OriginalScreenWidth_addr = il2cpp_symbols::get_method_pointer(ASSEMBLY_NAME, "Gallop", "Screen", "get_OriginalScreenWidth", 0);
+	set_OriginalScreenWidth_addr = il2cpp_symbols::get_method_pointer(ASSEMBLY_NAME, "Gallop", "Screen", "set_OriginalScreenWidth", 1);
+	get_OriginalScreenHeight_addr = il2cpp_symbols::get_method_pointer(ASSEMBLY_NAME, "Gallop", "Screen", "get_OriginalScreenHeight", 0);
+	set_OriginalScreenHeight_addr = il2cpp_symbols::get_method_pointer(ASSEMBLY_NAME, "Gallop", "Screen", "set_OriginalScreenHeight", 1);
+	get_IsLandscapeMode_addr = il2cpp_symbols::get_method_pointer(ASSEMBLY_NAME, "Gallop", "Screen", "get_IsLandscapeMode", 0);
+	get_IsSplitWindow_addr = il2cpp_symbols::get_method_pointer(ASSEMBLY_NAME, "Gallop", "Screen", "get_IsSplitWindow", 0);
+	get_IsVertical_addr = il2cpp_symbols::get_method_pointer(ASSEMBLY_NAME, "Gallop", "Screen", "get_IsVertical", 0);
+	ChangeScreenOrientation_addr = il2cpp_symbols::get_method_pointer(ASSEMBLY_NAME, "Gallop", "Screen", "ChangeScreenOrientation", 2);
+	ChangeScreenOrientationLandscapeAsync_addr = il2cpp_symbols::get_method_pointer(ASSEMBLY_NAME, "Gallop", "Screen", "ChangeScreenOrientationLandscapeAsync", 0);
+	ChangeScreenOrientationLandscapeAsyncDefault_addr = il2cpp_symbols::get_method_pointer(ASSEMBLY_NAME, "Gallop", "Screen", "ChangeScreenOrientationLandscapeAsyncDefault", 0);
+	ChangeScreenOrientationLandscapeAsyncLandscapeMode_addr = il2cpp_symbols::get_method_pointer(ASSEMBLY_NAME, "Gallop", "Screen", "ChangeScreenOrientationLandscapeAsyncLandscapeMode", 0);
+	ChangeScreenOrientationPortraitAsync_addr = il2cpp_symbols::get_method_pointer(ASSEMBLY_NAME, "Gallop", "Screen", "ChangeScreenOrientationPortraitAsync", 0);
+	ChangeScreenOrientationPortraitAsyncDefault_addr = il2cpp_symbols::get_method_pointer(ASSEMBLY_NAME, "Gallop", "Screen", "ChangeScreenOrientationPortraitAsyncDefault", 0);
+	ChangeScreenOrientationPortraitAsyncLandscapeMode_addr = il2cpp_symbols::get_method_pointer(ASSEMBLY_NAME, "Gallop", "Screen", "ChangeScreenOrientationPortraitAsyncLandscapeMode", 0);
+}
+
+static void HookMethods()
+{
+	if (config::unlock_size || config::freeform_window)
+	{
+#ifdef _MSC_VER
+		// remove fixed 1080p render resolution
+		ADD_HOOK(get_Width, "Gallop.Screen::get_Width at %p\n");
+		ADD_HOOK(get_Height, "Gallop.Screen::get_Height at %p\n");
+#endif
+		ADD_HOOK(get_OriginalScreenWidth, "Gallop.Screen::get_OriginalScreenWidth at %p\n");
+		ADD_HOOK(set_OriginalScreenWidth, "Gallop.Screen::set_OriginalScreenWidth at %p\n");
+		ADD_HOOK(get_OriginalScreenHeight, "Gallop.Screen::get_OriginalScreenHeight at %p\n");
+		ADD_HOOK(set_OriginalScreenHeight, "Gallop.Screen::set_OriginalScreenHeight at %p\n");
+	}
+
+	if (config::freeform_window)
+	{
+        ADD_HOOK(Setup, "Gallop.Screen::Setup at %p\n");
+		ADD_HOOK(WaitDeviceOrientation, "Gallop.Screen::WaitDeviceOrientation at %p\n");
+		ADD_HOOK(IsCurrentOrientation, "Gallop.Screen::IsCurrentOrientation at %p\n");
+		ADD_HOOK(SetResolution, "Gallop.Screen::SetResolution at %p\n");
+		ADD_HOOK(SetResolution2, "Gallop.Screen::SetResolution2 at %p\n");
+		ADD_HOOK(ChangeScreenOrientation, "Gallop.Screen::ChangeScreenOrientation at %p\n");
+		ADD_HOOK(ChangeScreenOrientationLandscapeAsync, "Gallop.Screen::ChangeScreenOrientationLandscapeAsync at %p\n");
+		ADD_HOOK(ChangeScreenOrientationPortraitAsync, "Gallop.Screen::ChangeScreenOrientationPortraitAsync at %p\n");
+	}
+}
+
+STATIC
+{
+	il2cpp_symbols::init_callbacks.emplace_back(InitAddress);
+	il2cpp_symbols::init_callbacks.emplace_back(HookMethods);
+}
+
+namespace Gallop
+{
+	int Screen::OriginalScreenWidth()
+	{
+		return reinterpret_cast<int (*)()>(get_OriginalScreenWidth_addr)();
+	}
+
+	void Screen::OriginalScreenWidth(int value)
+	{
+		reinterpret_cast<void (*)(int)>(set_OriginalScreenWidth_addr)(value);
+	}
+
+	int Screen::OriginalScreenHeight()
+	{
+		return reinterpret_cast<int (*)()>(get_OriginalScreenHeight_addr)();
+	}
+
+	void Screen::OriginalScreenHeight(int value)
+	{
+		reinterpret_cast<void (*)(int)>(set_OriginalScreenHeight_addr)(value);
+	}
+
+	int Screen::Width()
+	{
+		return reinterpret_cast<int (*)()>(get_Width_addr)();
+	}
+
+	int Screen::Height()
+	{
+		return reinterpret_cast<int (*)()>(get_Height_addr)();
+	}
+
+	bool Screen::IsLandscapeMode()
+	{
+		if (get_IsLandscapeMode_addr)
+		{
+			return reinterpret_cast<bool (*)()>(get_IsLandscapeMode_addr)();
+		}
+
+		// ENG Fallback
+		if (Game::CurrentGameRegion == Game::Region::ENG)
+		{
+			return true;
+		}
+
+		return false;
+	}
+
+	bool Screen::IsSplitWindow()
+	{
+		if (!get_IsSplitWindow_addr)
+		{
+			return false;
+		}
+
+		return reinterpret_cast<bool (*)()>(get_IsSplitWindow_addr)();
+	}
+
+	bool Screen::IsVertical()
+	{
+		return reinterpret_cast<bool (*)()>(get_IsVertical_addr)();
+	}
+
+	void Screen::UpdateOriginalScreenSize()
+	{
+		reinterpret_cast<void (*)()>(UpdateOriginalScreenSize_addr)();
+	}
+
+	Il2CppObject* Screen::ChangeScreenOrientation(UnityEngine::ScreenOrientation targetOrientation, bool isForce)
+	{
+		return reinterpret_cast<decltype(ChangeScreenOrientation)*>(ChangeScreenOrientation_addr)(targetOrientation, isForce);
+	}
+
+	Il2CppObject* Screen::ChangeScreenOrientationLandscapeAsync()
+	{
+		return reinterpret_cast<decltype(ChangeScreenOrientationLandscapeAsync)*>(ChangeScreenOrientationLandscapeAsync_addr)();
+	}
+
+	Il2CppObject* Screen::ChangeScreenOrientationLandscapeAsyncDefault()
+	{
+		return reinterpret_cast<decltype(ChangeScreenOrientationLandscapeAsyncDefault)*>(ChangeScreenOrientationLandscapeAsyncDefault_addr)();
+	}
+
+	Il2CppObject* Screen::ChangeScreenOrientationLandscapeAsyncLandscapeMode()
+	{
+		return reinterpret_cast<decltype(ChangeScreenOrientationLandscapeAsyncLandscapeMode)*>(ChangeScreenOrientationLandscapeAsyncLandscapeMode_addr)();
+	}
+
+	Il2CppObject* Screen::ChangeScreenOrientationPortraitAsync()
+	{
+		return reinterpret_cast<decltype(ChangeScreenOrientationPortraitAsync)*>(ChangeScreenOrientationPortraitAsync_addr)();
+	}
+
+	Il2CppObject* Screen::ChangeScreenOrientationPortraitAsyncDefault()
+	{
+		return reinterpret_cast<decltype(ChangeScreenOrientationPortraitAsyncDefault)*>(ChangeScreenOrientationPortraitAsyncDefault_addr)();
+	}
+
+	Il2CppObject* Screen::ChangeScreenOrientationPortraitAsyncLandscapeMode()
+	{
+		return reinterpret_cast<decltype(ChangeScreenOrientationPortraitAsyncLandscapeMode)*>(ChangeScreenOrientationPortraitAsyncLandscapeMode_addr)();
+	}
+}

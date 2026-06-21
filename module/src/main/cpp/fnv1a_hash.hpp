@@ -1,7 +1,4 @@
-#ifndef UMAMUSUMELOCALIFYANDROID_FNV1A_HASH_HPP
-#define UMAMUSUMELOCALIFYANDROID_FNV1A_HASH_HPP
-
-#include <stddef.h>
+#pragma once
 
 #define ull unsigned long long
 
@@ -29,6 +26,3 @@ namespace fnv1a {
                 _Count * sizeof(_Kty));
     }
 }
-
-
-#endif //UMAMUSUMELOCALIFYANDROID_FNV1A_HASH_HPP

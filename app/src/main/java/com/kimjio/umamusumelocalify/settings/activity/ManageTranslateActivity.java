@@ -7,6 +7,7 @@ import android.os.Build;
 import android.os.Bundle;
 import android.provider.DocumentsContract;
 import android.util.ArraySet;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -53,6 +54,8 @@ public class ManageTranslateActivity extends BaseActivity<ManageTranslateActivit
 
     private ActivityResultLauncher<String[]> openMultipleDocuments;
 
+    private static final String TAG = "ManageTranslateActivity";
+
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -78,10 +81,15 @@ public class ManageTranslateActivity extends BaseActivity<ManageTranslateActivit
             new Thread(() -> {
                 List<DocumentFile> files = list.stream().map(item -> DocumentFile.fromSingleUri(this, item))
                         .filter(Objects::nonNull)
-                        .collect(Collectors.toList());
-                for (DocumentFile item :
-                        files) {
-                    if (!Objects.requireNonNull(item).getUri().getPath().contains("Android/data/" + packageName)) {
+                        .toList();
+                for (DocumentFile item : files) {
+                    String path = Objects.requireNonNull(item).getUri().getPath();
+
+                    if (path == null) {
+                        return;
+                    }
+
+                    if (!path.contains("Android/data/" + packageName)) {
                         runOnUiThread(() -> {
                             binding.progress.setVisibility(View.GONE);
                             Toast.makeText(this, R.string.error_file_not_in_data_folder, Toast.LENGTH_SHORT).show();
@@ -115,7 +123,13 @@ public class ManageTranslateActivity extends BaseActivity<ManageTranslateActivit
                         }
                         TranslateFile file = new TranslateFile(item.getName(), item.getUri(), supportVersion, enabled, item.canWrite(), false);
                         Set<String> set = Objects.requireNonNull(dataStore.getStringSet("dicts", new ArraySet<>()));
-                        String[] split = file.path.getPath().split(packageName + "/");
+                        String path1 = file.path.getPath();
+
+                        if (path1 == null) {
+                            return;
+                        }
+
+                        String[] split = path1.split(packageName + "/");
                         boolean added = set.add(split[split.length - 1]);
                         dataStore.putStringSet("dicts", set);
                         runOnUiThread(() -> {
@@ -126,7 +140,7 @@ public class ManageTranslateActivity extends BaseActivity<ManageTranslateActivit
                             }
                         });
                     } catch (IOException | JSONException e) {
-                        e.printStackTrace();
+                        Log.w(TAG, "onCreate", e);
                     }
                 }
                 runOnUiThread(() -> binding.progress.setVisibility(View.GONE));
@@ -135,6 +149,10 @@ public class ManageTranslateActivity extends BaseActivity<ManageTranslateActivit
 
         Uri configPath = getIntent().getParcelableExtra(EXTRA_CONFIG_PATH);
         Uri path = getIntent().getParcelableExtra(EXTRA_PATH);
+
+        if (path == null) {
+            return;
+        }
 
         dataStore = new JsonPreferenceDataStore(getContentResolver(), configPath);
 
@@ -154,9 +172,8 @@ public class ManageTranslateActivity extends BaseActivity<ManageTranslateActivit
         new Thread(() -> {
             List<TranslateFile> files = dictSet.stream()
                     .map(item -> {
-                        DocumentFile file = DocumentFile.fromSingleUri(this, Uri.parse(path.toString() + "%2F" + item.replaceAll("/", "%2F")));
-                        if (file != null) return Map.of("origPath", item, "file", file);
-                        return Map.of("origPath", item);
+                        DocumentFile file = DocumentFile.fromSingleUri(this, Uri.parse(path + "%2F" + item.replaceAll("/", "%2F")));
+                        return Map.of("origPath", item, "file", file);
                     })
                     .map(map -> {
                         if (map.containsKey("file")) {
@@ -182,7 +199,7 @@ public class ManageTranslateActivity extends BaseActivity<ManageTranslateActivit
                                     }
                                     return new TranslateFile(item.getName(), item.getUri(), supportVersion, enabled, item.canWrite(), false);
                                 } catch (IOException | JSONException e) {
-                                    e.printStackTrace();
+                                    Log.w(TAG, "onCreate", e);
                                     return new TranslateFile(item.getName(), item.getUri(), null, false, false, true);
                                 }
                             } else {
@@ -225,14 +242,18 @@ public class ManageTranslateActivity extends BaseActivity<ManageTranslateActivit
                 JSONObject object = new JSONObject(builder.toString());
                 object.put("_enabled", enabled);
                 try (OutputStream os = getContentResolver().openOutputStream(path, "wt")) {
+                    if (os == null) {
+                        return;
+                    }
+
                     Writer writer = new PrintWriter(os);
                     writer.write(object.toString(4) + "\n");
                     writer.flush();
                 } catch (JSONException | IOException e) {
-                    e.printStackTrace();
+                    Log.w(TAG, "toggleFileEnable", e);
                 }
             } catch (IOException | JSONException e) {
-                e.printStackTrace();
+                Log.w(TAG, "toggleFileEnabled", e);
             }
             runOnUiThread(setViewEnabled);
         }).start();
@@ -244,7 +265,13 @@ public class ManageTranslateActivity extends BaseActivity<ManageTranslateActivit
             if (file.path == null) {
                 return item.contains(file.fileName);
             } else {
-                return file.path.getPath().contains(item);
+                String path = file.path.getPath();
+
+                if (path == null) {
+                    return true;
+                }
+
+                return path.contains(item);
             }
         });
         dataStore.putStringSet("dicts", set);

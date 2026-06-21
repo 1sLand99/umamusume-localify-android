@@ -1,0 +1,29 @@
+#pragma once
+#include "Transform.hpp"
+#include "Vector2.hpp"
+#include "Rect.hpp"
+
+namespace UnityEngine
+{
+	class RectTransform : public Transform
+	{
+	public:
+		void anchoredPosition(Vector2 value);
+		Vector2 anchoredPosition();
+		void anchorMax(Vector2 value);
+		Vector2 anchorMax();
+		void anchorMin(Vector2 value);
+		Vector2 anchorMin();
+		void pivot(Vector2 value);
+		Vector2 pivot();
+		void sizeDelta(Vector2 value);
+		Vector2 sizeDelta();
+		void offsetMin(Vector2 value);
+		Vector2 offsetMin();
+		void offsetMax(Vector2 value);
+		Vector2 offsetMax();
+		Rect rect();
+
+		using Transform::Transform;
+	};
+}

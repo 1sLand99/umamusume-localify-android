@@ -126,7 +126,9 @@ public class SettingsFragment extends BaseSettingsFragment {
             display = requireActivity().getWindowManager().getDefaultDisplay();
         }
 
-        maxFpsPreference.setMax(Math.round(display.getRefreshRate()));
+        if (display != null) {
+            maxFpsPreference.setMax(Math.round(display.getRefreshRate()));
+        }
 
         boolean replaceToCustomFont = dataStore.getBoolean("replaceToCustomFont", false);
 

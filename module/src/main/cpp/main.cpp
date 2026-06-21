@@ -1,14 +1,21 @@
+#include <jni.h>
+
 #include <fcntl.h>
 
 #include <sys/mman.h>
+#include <unistd.h>
 
 #include "stdinclude.hpp"
+
+#include <pthread.h>
+#include <dobby.h>
+
 #include "hook.h"
 #include "zygisk.hpp"
 
 #include "lsplant.hpp"
 
-#include "elf_util.h"
+#include "elf_image.h"
 
 #include "zygoteloader/serializer.h"
 #include "zygoteloader/dex.hpp"
@@ -33,18 +40,18 @@ using zygisk::Api;
 using zygisk::AppSpecializeArgs;
 using zygisk::ServerSpecializeArgs;
 
-void *InlineHooker(void *target, void *hooker) {
+static void* InlineHooker(void *target, void *hooker) {
     make_rwx(target, _page_size);
     void *origin_call;
-    if (DobbyHook(target, hooker, &origin_call) == RS_SUCCESS) {
+    if (DobbyHook(target, hooker, &origin_call) == 0) {
         return origin_call;
     } else {
         return nullptr;
     }
 }
 
-bool InlineUnhooker(void *func) {
-    return DobbyDestroy(func) == RT_SUCCESS;
+static bool InlineUnhooker(void *func) {
+    return DobbyDestroy(func) == 0;
 }
 
 void handleFileRequest(int client) {
@@ -81,13 +88,27 @@ void handleFileRequest(int client) {
 
 class Module : public zygisk::ModuleBase {
 public:
-    void onLoad(Api *pApi, JNIEnv *pEnv) override {
-        api = pApi;
-        env = pEnv;
+    void onLoad(Api *api, JNIEnv *env) override {
+        this->api = api;
+        this->env = env;
 
         if (!isInitialized()) {
             initialize();
         }
+    }
+
+    static bool isGame(const char *pkgNm) {
+        if (!pkgNm)
+            return false;
+        if (Game::IsPackageNameEqualsByGameRegion(pkgNm, Game::Region::JPN) ||
+            Game::IsPackageNameEqualsByGameRegion(pkgNm, Game::Region::KOR) ||
+            Game::IsPackageNameEqualsByGameRegion(pkgNm, Game::Region::TWN) ||
+            Game::IsPackageNameEqualsByGameRegion(pkgNm, Game::Region::CHN) ||
+            Game::IsPackageNameEqualsByGameRegion(pkgNm, Game::Region::ENG)) {
+            LOGI("detect package: %s", pkgNm);
+            return true;
+        }
+        return false;
     }
 
     void preAppSpecialize(AppSpecializeArgs *args) override {
@@ -97,19 +118,17 @@ public:
         }
         auto pkgNm = env->GetStringUTFChars(args->nice_name, nullptr);
         enable_hack = isGame(pkgNm);
-        /* if (!enable_hack) {
-            enable_settings_hack = isSettings(pkgNm);
-        } */
-        if (enable_hack/* && Game::CurrentGameRegion == Game::Region::KOR*/) {
+        if (enable_hack) {
             fetchResources();
+        } else {
+            api->setOption(zygisk::Option::DLCLOSE_MODULE_LIBRARY);
         }
         env->ReleaseStringUTFChars(args->nice_name, pkgNm);
     }
 
     void postAppSpecialize(const AppSpecializeArgs *) override {
-        if (enable_hack /* || enable_settings_hack */) {
-            // if (enable_hack) {
-            SandHook::ElfImg art("libart.so");
+        if (enable_hack) {
+            ElfImage art("libart.so");
             const lsplant::InitInfo initInfo{
                     .inline_hooker = InlineHooker,
                     .inline_unhooker = InlineUnhooker,
@@ -117,7 +136,7 @@ public:
                         return art.getSymbAddress(symbol);
                     },
                     .art_symbol_prefix_resolver = [&art](auto symbol) {
-                        return art.getSymbPrefixFirstOffset(symbol);
+                        return art.getSymbPrefixFirstAddress(symbol);
                     },
             };
             if (lsplant::Init(env, initInfo) && classesDex != nullptr) {
@@ -126,14 +145,10 @@ public:
                         classesDex->base, classesDex->length
                 );
             }
-            // }
+
             int ret;
             pthread_t t;
-            ret = pthread_create(&t, nullptr,
-                                 reinterpret_cast<void *(*)(void *)>(/* enable_settings_hack
-                                                                          ? hack_settings_thread
-                                                                          :  */hack_thread),
-                                 classesDex);
+            ret = pthread_create(&t, nullptr, reinterpret_cast<void *(*)(void *)>(hack_thread), classesDex);
             if (ret != 0) {
                 LOGE("can't create thread: %s\n", strerror(ret));
             }
@@ -154,6 +169,7 @@ private:
     JNIEnv *env{};
     Api *api{};
     Resource *classesDex{};
+    bool enable_hack;
 
     bool isInitialized() {
         const int remote = api->connectCompanion();

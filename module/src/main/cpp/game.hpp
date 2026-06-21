@@ -1,46 +1,67 @@
 #pragma once
 
-#ifndef UMAMUSUMELOCALIFYANDROID_GAME_HPP
-#define UMAMUSUMELOCALIFYANDROID_GAME_HPP
-
 #include <string>
+#include <cstdint>
 
-#define Unity2019 "2019.4."s
-#define Unity2020 "2020.3."s
+#ifndef _MSC_VER
+
+#include <unistd.h>
+
+#endif
+
+#define Unity2022 "2022.3."s
 
 using namespace std;
 
 namespace Game {
-    enum class Region {
+    enum class Region : uint8_t {
         UNKNOWN,
-        JAP,
+        JPN,
         KOR,
+#ifdef __ANDROID__
         TWN,
+        CHN,
+#endif
+        ENG,
     };
 
-    enum class Store {
+    enum class Store : uint8_t {
         Google,
+#ifdef _MSC_VER
+        Steam,
+#endif
         // Ex. OneStore, MyCard...
         Other
     };
 
+    enum class UnityVersion : uint8_t {
+        Unity22,
+        Unity20,
+        Unknown,
+    };
+
     inline auto CurrentGameRegion = Region::UNKNOWN;
     inline auto CurrentGameStore = Store::Google;
+    inline auto CurrentUnityVersion = UnityVersion::Unknown;
 
+#ifdef __ANDROID__
     inline auto GamePackageName = "jp.co.cygames.umamusume"s;
     inline auto GamePackageNameKor = "com.kakaogames.umamusume"s;
     inline auto GamePackageNameTwnGoogle = "com.komoe.kmumamusumegp"s;
     inline auto GamePackageNameTwnMyCard = "com.komoe.kmumamusumemc"s;
+    inline auto GamePackageNameTwnMyCardAlt = "com.komoe.umamusumeofficial"s;
+    inline auto GamePackageNameChn = "com.bilibili.umamusu"s;
+    inline auto GamePackageNameEng = "com.cygames.umamusume"s;
 
     static bool IsPackageNameEqualsByGameRegion(const char *pkgNm, Region gameRegion) {
-        string pkgNmStr = string(pkgNm);
+        const string pkgNmStr = string(pkgNm);
         if (pkgNmStr.empty()) {
             return false;
         }
         switch (gameRegion) {
-            case Region::JAP:
+            case Region::JPN:
                 if (pkgNmStr == GamePackageName) {
-                    CurrentGameRegion = Region::JAP;
+                    CurrentGameRegion = Region::JPN;
                     CurrentGameStore = Store::Google;
                     return true;
                 }
@@ -57,9 +78,24 @@ namespace Game {
                     CurrentGameRegion = Region::TWN;
                     CurrentGameStore = Store::Google;
                     return true;
-                } else if (pkgNmStr == GamePackageNameTwnMyCard) {
+                } else if (pkgNmStr == GamePackageNameTwnMyCard ||
+                           pkgNmStr == GamePackageNameTwnMyCardAlt) {
                     CurrentGameRegion = Region::TWN;
                     CurrentGameStore = Store::Other;
+                    return true;
+                }
+                break;
+            case Region::CHN:
+                if (pkgNmStr == GamePackageNameChn) {
+                    CurrentGameRegion = Region::CHN;
+                    CurrentGameStore = Store::Other;
+                    return true;
+                }
+                break;
+            case Region::ENG:
+                if (pkgNmStr == GamePackageNameEng) {
+                    CurrentGameRegion = Region::ENG;
+                    CurrentGameStore = Store::Google;
                     return true;
                 }
                 break;
@@ -70,16 +106,29 @@ namespace Game {
         return false;
     }
 
-    static string GetPackageNameByGameRegionAndGameStore(Region gameRegion, Store gameStore) {
-        if (gameRegion == Region::JAP)
+    static string
+    GetPackageNameByGameRegionAndGameStore(Region gameRegion, Store gameStore, bool isAlt = false) {
+        if (gameRegion == Region::JPN) {
             return GamePackageName;
-        if (gameRegion == Region::KOR)
+        }
+        if (gameRegion == Region::KOR) {
             return GamePackageNameKor;
+        }
         if (gameRegion == Region::TWN) {
             if (gameStore == Store::Other) {
+                if (isAlt) {
+                    return GamePackageNameTwnMyCardAlt;
+                }
+
                 return GamePackageNameTwnMyCard;
             }
             return GamePackageNameTwnGoogle;
+        }
+        if (gameRegion == Region::ENG) {
+            return GamePackageNameEng;
+        }
+        if (gameRegion == Region::CHN) {
+            return GamePackageNameChn;
         }
         return "";
     }
@@ -91,11 +140,11 @@ namespace Game {
     static Region CheckPackageNameByDataPath() {
         if (access(
                 "/data/data/"s
-                        .append(GetPackageNameByGameRegionAndGameStore(Region::JAP,
+                        .append(GetPackageNameByGameRegionAndGameStore(Region::JPN,
                                                                        Store::Google)).append(
                         "/cache").data(),
                 F_OK) == 0) {
-            return Region::JAP;
+            return Region::JPN;
         }
         if (access(
                 "/data/data/"s
@@ -122,9 +171,34 @@ namespace Game {
             CurrentGameStore = Store::Other;
             return Region::TWN;
         }
+        if (access(
+                "/data/data/"s
+                        .append(GetPackageNameByGameRegionAndGameStore(Region::TWN,
+                                                                       Store::Other, true)).append(
+                        "/cache").data(),
+                F_OK) == 0) {
+            CurrentGameStore = Store::Other;
+            return Region::TWN;
+        }
+        if (access(
+                "/data/data/"s
+                        .append(GetPackageNameByGameRegionAndGameStore(Region::CHN,
+                                                                       Store::Other)).append(
+                        "/cache").data(),
+                F_OK) == 0) {
+            return Region::CHN;
+        }
+        if (access(
+                "/data/data/"s
+                        .append(GetPackageNameByGameRegionAndGameStore(Region::ENG,
+                                                                       Store::Google)).append(
+                        "/cache").data(),
+                F_OK) == 0) {
+            return Region::ENG;
+        }
 
         return Region::UNKNOWN;
     }
-}
 
 #endif
+}

@@ -1,23 +1,28 @@
 import org.apache.tools.ant.filters.FixCrLfFilter
 import org.apache.tools.ant.filters.ReplaceTokens
 
+import javax.inject.Inject
+
 apply plugin: 'com.android.library'
 // apply plugin: 'kotlin-android'
 apply from: file(rootProject.file('module.gradle'))
+
+interface InjectedExecOps {
+    @Inject
+    ExecOperations getExecOps()
+}
 
 android {
     flavorDimensions += "api"
 
     compileSdkVersion rootProject.ext.targetSdkVersion
-    buildToolsVersion '36.0.0'
-    ndkVersion '28.2.13676358'
+    buildToolsVersion '37.0.0'
+    ndkVersion '29.0.14206865'
     defaultConfig {
         minSdkVersion rootProject.ext.minSdkVersion
         externalNativeBuild {
             cmake {
-                arguments "-DMODULE_NAME:STRING=$moduleLibraryName",
-                        "-DMODULE_VERSION=$moduleVersionCode",
-                        "-DMODULE_VERSION_NAME:STRING=$moduleVersion"
+                arguments "-DMODULE_NAME:STRING=$moduleLibraryName"
             }
         }
     }
@@ -28,7 +33,7 @@ android {
     externalNativeBuild {
         cmake {
             path "src/main/cpp/CMakeLists.txt"
-            version "4.0.3"
+            version "4.1.2"
         }
     }
     namespace 'com.kimjio.umamusumelocalify'
@@ -36,14 +41,14 @@ android {
         main.java.srcDirs += 'src/main/kotlin'
     }
     compileOptions {
-        sourceCompatibility JavaVersion.VERSION_17
-        targetCompatibility JavaVersion.VERSION_17
+        sourceCompatibility JavaVersion.VERSION_21
+        targetCompatibility JavaVersion.VERSION_21
     }
     lint {
-        targetSdk 36
+        targetSdk 37
     }
     testOptions {
-        targetSdk 36
+        targetSdk 37
     }
 }
 
@@ -54,21 +59,21 @@ repositories {
 
 dependencies {
     implementation fileTree(dir: 'libs', include: ['*.jar', '*.aar'])
-    implementation 'androidx.annotation:annotation:1.9.1'
+    implementation 'androidx.annotation:annotation:1.10.0'
 }
 
-afterEvaluate {
-    android.libraryVariants.forEach { variant ->
+androidComponents {
+    onVariants(selector().all()) { variant ->
         def variantCapped = variant.name.capitalize()
         def variantLowered = variant.name.toLowerCase()
-        def buildTypeCapped = variant.buildType.name.capitalize()
-        def buildTypeLowered = variant.buildType.name.toLowerCase()
+        def buildTypeCapped = variant.buildType.capitalize()
+        def buildTypeLowered = variant.buildType.toLowerCase()
 
         def zipName = "${magiskModuleId.replace('_', '-')}-${moduleVersion}-${buildTypeLowered}.zip"
         def moduleDir = file("$outDir/module_${buildTypeLowered}")
 
         tasks.register("prepareModuleFiles${variantCapped}", Sync) {
-            dependsOn("assemble$variantCapped")
+            dependsOn("assemble${variantCapped}")
 
             def templatePath = "$rootDir/template/module"
 
@@ -118,15 +123,17 @@ afterEvaluate {
             }
 
             from("${layout.buildDirectory.asFile.get()}/intermediates/stripped_native_libs/$variantLowered/strip${variantLowered}DebugSymbols/out/lib") {
+                exclude "libdobby.so"
                 into 'lib'
             }
 
             from("${layout.buildDirectory.asFile.get()}/intermediates/javac/$variantLowered/") {
                 exclude "compile${buildTypeCapped}JavaWithJavac", "classes"
+                def injected = project.objects.newInstance(InjectedExecOps)
                 doFirst {
-                    def sdkDir = project.android.sdkDirectory;
+                    def sdkDir = androidComponents.sdkComponents.sdkDirectory.get();
                     def buildToolVersion = project.android.buildToolsVersion;
-                    exec {
+                    injected.execOps.exec {
                         workingDir "${layout.buildDirectory.asFile.get()}/intermediates/javac/$variantLowered"
                         commandLine "$sdkDir/build-tools/$buildToolVersion/d8${System.properties['os.name'].toLowerCase().contains('windows'.toLowerCase()) ? ".bat" : ''}",
                                 "${layout.buildDirectory.asFile.get()}/intermediates/javac/$variantLowered/compile${variantLowered}JavaWithJavac/classes/androidx/core/graphics/Insets.class",
@@ -168,7 +175,7 @@ afterEvaluate {
 //                                "${layout.buildDirectory.asFile.get()}/intermediates/javac/$variantLowered/classes/",
                                 "--no-desugaring",
                                 "--min-api",
-                                minSdkVersion
+                                minSdkVersion.apiLevel
                     }
                 }
                 into ''
@@ -185,42 +192,44 @@ afterEvaluate {
         tasks.register("push${variantCapped}", Exec) {
             dependsOn("zip${variantCapped}")
             workingDir outDir
-            commandLine android.adbExecutable, "push", zipName, "/data/local/tmp/"
+            commandLine androidComponents.sdkComponents.adb.get(), "push", zipName, "/data/local/tmp/"
         }
 
         tasks.register("flash${variantCapped}", Exec) {
             dependsOn("push${variantCapped}")
-            commandLine android.adbExecutable, "shell", "su", "-c",
+            commandLine androidComponents.sdkComponents.adb.get(), "shell", "su", "-c",
                     "magisk --install-module /data/local/tmp/${zipName}"
         }
 
         tasks.register("flashKSU${variantCapped}", Exec) {
             dependsOn("push${variantCapped}")
-            commandLine android.adbExecutable, "shell", "su", "-c",
+            commandLine androidComponents.sdkComponents.adb.get(), "shell", "su", "-c",
                     "ksud module install /data/local/tmp/${zipName}"
         }
 
         tasks.register("flashAP${variantCapped}", Exec) {
             dependsOn("push${variantCapped}")
-            commandLine android.adbExecutable, "shell", "su", "-c",
+            commandLine androidComponents.sdkComponents.adb.get(), "shell", "su", "-c",
                     "apd module install /data/local/tmp/${zipName}"
         }
 
         tasks.register("flashAndReboot${variantCapped}", Exec) {
             dependsOn("flash${variantCapped}")
-            commandLine android.adbExecutable, "shell", "reboot", "now"
+            commandLine androidComponents.sdkComponents.adb.get(), "shell", "reboot", "now"
         }
 
         tasks.register("flashKSUAndReboot${variantCapped}", Exec) {
             dependsOn("flashKSU${variantCapped}")
-            commandLine android.adbExecutable, "shell", "reboot", "now"
+            commandLine androidComponents.sdkComponents.adb.get(), "shell", "reboot", "now"
         }
 
         tasks.register("flashAPAndReboot${variantCapped}", Exec) {
             dependsOn("flashAP${variantCapped}")
-            commandLine android.adbExecutable, "shell", "reboot", "now"
+            commandLine androidComponents.sdkComponents.adb.get(), "shell", "reboot", "now"
         }
 
-        variant.assembleProvider.get().finalizedBy("zip${variantCapped}")
+        tasks.matching { it.name == "assemble${variantCapped}" }.configureEach {
+            it.finalizedBy("zip${variantCapped}")
+        }
     }
 }

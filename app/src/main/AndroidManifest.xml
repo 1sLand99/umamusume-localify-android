@@ -5,12 +5,22 @@
     <uses-permission android:name="android.permission.KILL_BACKGROUND_PROCESSES" />
 
     <queries>
+        <!-- Cygames -->
         <package android:name="jp.co.cygames.umamusume" />
+        <!-- PCRGM -->
         <package android:name="jp.co.cygames.priconnegrandmasters" />
+        <!-- Kakaogames -->
         <package android:name="com.kakaogames.umamusume" />
+        <!-- Kakaogames PCRGM -->
         <package android:name="com.kakaogames.pcrgm" />
+        <!-- Cygames EN -->
+        <package android:name="com.cygames.umamusume" />
+        <!-- Komoe -->
         <package android:name="com.komoe.kmumamusumegp" />
+        <!-- Komoe MyCard legacy -->
         <package android:name="com.komoe.kmumamusumemc" />
+        <!-- Komoe MyCard -->
+        <package android:name="com.komoe.umamusumeofficial" />
         <!-- TODO Package by region -->
     </queries>
 
@@ -54,6 +64,14 @@
         <activity
             android:name=".activity.SettingsActivity"
             android:exported="false" />
+
+        <provider
+            android:name="rikka.shizuku.ShizukuProvider"
+            android:authorities="${applicationId}.shizuku"
+            android:multiprocess="false"
+            android:enabled="true"
+            android:exported="true"
+            android:permission="android.permission.INTERACT_ACROSS_USERS_FULL" />
     </application>
 
 </manifest>

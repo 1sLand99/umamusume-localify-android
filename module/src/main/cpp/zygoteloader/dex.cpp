@@ -1,13 +1,15 @@
 #include "dex.hpp"
 
-#include "../log.h"
+#include "log.h"
 
+#include <jni.h>
 #include <string>
 #include <vector>
+#include <cstdint>
 
 #include "lsplant.hpp"
 
-#include "../il2cpp_hook.h"
+#include "hook.h"
 
 
 #define find_class(var_name, name) jclass var_name = env->FindClass(name);

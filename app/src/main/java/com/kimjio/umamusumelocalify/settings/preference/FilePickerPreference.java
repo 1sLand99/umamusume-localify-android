@@ -137,8 +137,13 @@ public class FilePickerPreference extends Preference implements IActivityResultP
                 resultCode == Activity.RESULT_OK &&
                 data != null) {
             Uri path = data.getData();
+            if (path == null || path.getPath() == null) {
+                return;
+            }
+
             String currentPackageName = getContext().getSharedPreferences(Constants.PREF_NAME, Context.MODE_PRIVATE)
                     .getString(MainActivity.KEY_LAST_SELECTED_PACKAGE, null);
+
             if (!path.getPath().contains("Android/data/" + currentPackageName)) {
                 Toast.makeText(getContext(), R.string.error_file_not_in_data_folder, Toast.LENGTH_SHORT).show();
                 return;

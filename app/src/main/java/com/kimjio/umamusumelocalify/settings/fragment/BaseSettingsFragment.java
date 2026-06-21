@@ -5,9 +5,11 @@ import android.content.Intent;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.Window;
 import android.view.WindowManager;
 
 import androidx.annotation.NonNull;
@@ -40,6 +42,8 @@ public abstract class BaseSettingsFragment extends PreferenceFragmentCompat impl
     public static final String KEY_INITIAL_PARENT_PATH = "initial_parent_path";
     public static final String KEY_PACKAGE_NAME = "package_name";
 
+    private static final String TAG = "BaseSettingsFragment";
+
     protected String packageName;
 
     protected Uri path;
@@ -67,23 +71,22 @@ public abstract class BaseSettingsFragment extends PreferenceFragmentCompat impl
         getPreferenceManager().setPreferenceDataStore(dataStore);
         setPreferencesFromResource(getPreferenceResourceId(), rootKey);
         DocumentFile file = DocumentFile.fromSingleUri(requireContext(), path);
-        if (file != null) {
-            getPreferenceScreen().setEnabled(file.canWrite());
-            if (!getPreferenceScreen().isEnabled() && Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                Dialog dialog = new MaterialAlertDialogBuilder(requireContext())
-                        .setIcon(R.drawable.ic_error)
-                        .setTitle(R.string.error)
-                        .setMessage(R.string.error_readonly)
-                        .setPositiveButton(android.R.string.ok, null)
-                        .create();
-                float density = getResources().getDisplayMetrics().density;
-                dialog.getWindow().addFlags(WindowManager.LayoutParams.FLAG_BLUR_BEHIND);
-                dialog.getWindow().getAttributes().setBlurBehindRadius((int) (density * 16.0f));
-
-                dialog.show();
+        getPreferenceScreen().setEnabled(file.canWrite());
+        if (!getPreferenceScreen().isEnabled() && Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            Dialog dialog = new MaterialAlertDialogBuilder(requireContext())
+                    .setIcon(R.drawable.ic_error)
+                    .setTitle(R.string.error)
+                    .setMessage(R.string.error_readonly)
+                    .setPositiveButton(android.R.string.ok, null)
+                    .create();
+            float density = getResources().getDisplayMetrics().density;
+            Window window = dialog.getWindow();
+            if (window != null) {
+                window.addFlags(WindowManager.LayoutParams.FLAG_BLUR_BEHIND);
+                window.getAttributes().setBlurBehindRadius((int) (density * 16.0f));
             }
-        } else {
-            getPreferenceScreen().setEnabled(false);
+
+            dialog.show();
         }
     }
 
@@ -163,7 +166,7 @@ public abstract class BaseSettingsFragment extends PreferenceFragmentCompat impl
                 }
             }
         } catch (ReflectiveOperationException | IllegalArgumentException e) {
-            e.printStackTrace();
+            Log.w(TAG, "updatePreference", e);
         }
     }
 }

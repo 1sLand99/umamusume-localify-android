@@ -1,0 +1,112 @@
+#ifdef _MSC_VER
+#include "../umamusume.hpp"
+#include "../../ScriptInternal.hpp"
+#include "WindowsGamepadControl.hpp"
+#include "Screen.hpp"
+
+#include "scripts/UnityEngine.CoreModule/UnityEngine/RenderTexture.hpp"
+#include "scripts/UnityEngine.CoreModule/UnityEngine/RenderTextureDescriptor.hpp"
+
+#include "config/config.hpp"
+
+namespace
+{
+	Il2CppClass* WindowsGamepadControl_klass = nullptr;
+
+	Il2CppMethodPointer WindowsGamepadControl_UpdateInputControls_addr = nullptr;
+	
+	Il2CppMethodPointer WindowsGamepadControl_ReleaseRenderTexture_addr = nullptr;
+
+	Il2CppMethodPointer WindowsGamepadControl_CreateRenderTextureFromScreen_addr = nullptr;
+	void* WindowsGamepadControl_CreateRenderTextureFromScreen_orig = nullptr;
+
+	FieldInfo* WindowsGamepadControl__softwareCursorUiTexture = nullptr;
+	FieldInfo* WindowsGamepadControl__softwareCursorUiCamera = nullptr;
+}
+
+static void WindowsGamepadControl_CreateRenderTextureFromScreen_hook(Il2CppObject* self)
+{
+	auto control = Gallop::WindowsGamepadControl(self);
+	control.ReleaseRenderTexture();
+	
+	auto descriptor = UnityEngine::RenderTextureDescriptor{};
+	il2cpp_symbols::get_method_pointer<void (*)(UnityEngine::RenderTextureDescriptor*, int, int, int, int)>("UnityEngine.CoreModule.dll", "UnityEngine", "RenderTextureDescriptor", ".ctor", 4)(&descriptor, Gallop::Screen::Width(), Gallop::Screen::Height(), 8, 24);
+	
+	auto renderTexture = UnityEngine::RenderTexture(descriptor);
+	
+	if (!renderTexture.Create())
+	{
+		return;
+	}
+
+	il2cpp_field_set_value(control, WindowsGamepadControl__softwareCursorUiTexture, renderTexture);
+	if (!renderTexture.Create())
+	{
+		control.ReleaseRenderTexture();
+	}
+
+	Il2CppObject* softwareCursorUiCamera;
+	il2cpp_field_get_value(control, WindowsGamepadControl__softwareCursorUiCamera, &softwareCursorUiCamera);
+
+	if (!softwareCursorUiCamera)
+	{
+		return;
+	}
+
+	il2cpp_symbols::get_method_pointer<void (*)(Il2CppObject*, Il2CppObject*)>(softwareCursorUiCamera->klass, "set_targetTexture", 1)(softwareCursorUiCamera, renderTexture);
+
+	UnityEngine::Behaviour(softwareCursorUiCamera).enabled(false);
+}
+
+static void InitAddress()
+{
+	WindowsGamepadControl_klass = il2cpp_symbols::get_class(ASSEMBLY_NAME, Gallop::WindowsGamepadControl::namespaze, Gallop::WindowsGamepadControl::klassName);
+	if (!WindowsGamepadControl_klass)
+	{
+		// Legacy name
+		WindowsGamepadControl_klass = il2cpp_symbols::get_class(ASSEMBLY_NAME, Gallop::WindowsGamepadControl::namespaze, Gallop::WindowsGamepadControl::klassNameLegacy);
+		WindowsGamepadControl_CreateRenderTextureFromScreen_addr = il2cpp_symbols::get_method_pointer(WindowsGamepadControl_klass, "CreateRenderTextureFromScreen", 0);
+	}
+
+	if (!WindowsGamepadControl_klass)
+	{
+		return;
+	}
+
+	WindowsGamepadControl__softwareCursorUiTexture = il2cpp_class_get_field_from_name(WindowsGamepadControl_klass, "_softwareCursorUiTexture");
+	WindowsGamepadControl__softwareCursorUiCamera = il2cpp_class_get_field_from_name(WindowsGamepadControl_klass, "_softwareCursorUiCamera");
+	WindowsGamepadControl_UpdateInputControls_addr = il2cpp_symbols::get_method_pointer(WindowsGamepadControl_klass, "UpdateInputControls", 0);
+	WindowsGamepadControl_ReleaseRenderTexture_addr = il2cpp_symbols::get_method_pointer(WindowsGamepadControl_klass, "ReleaseRenderTexture", 0);
+}
+
+static void HookMethods()
+{
+	if (config::unlock_size || config::freeform_window && WindowsGamepadControl_CreateRenderTextureFromScreen_addr)
+	{
+		ADD_HOOK(WindowsGamepadControl_CreateRenderTextureFromScreen, "Gallop.WindowsGamepadControl::CreateRenderTextureFromScreen at %p\n");
+	}
+}
+
+STATIC
+{
+	il2cpp_symbols::init_callbacks.emplace_back(InitAddress);
+	il2cpp_symbols::init_callbacks.emplace_back(HookMethods);
+}
+
+namespace Gallop
+{
+	const char* WindowsGamepadControl::namespaze = "Gallop";
+	const char* WindowsGamepadControl::klassName = "WindowsGamepadControl";
+	const char* WindowsGamepadControl::klassNameLegacy = "SteamGamepadControl";
+
+	void WindowsGamepadControl::ReleaseRenderTexture()
+	{
+		reinterpret_cast<void (*)(Il2CppObject*)>(WindowsGamepadControl_ReleaseRenderTexture_addr)(instance);
+	}
+
+	void WindowsGamepadControl::UpdateInputControls()
+	{
+		reinterpret_cast<void (*)(Il2CppObject*)>(WindowsGamepadControl_UpdateInputControls_addr)(instance);
+	}
+}
+#endif

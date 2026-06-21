@@ -1,0 +1,693 @@
+#include "../umamusume.hpp"
+#include "../../ScriptInternal.hpp"
+#include "UIManager.hpp"
+#include "BGManager.hpp"
+#ifdef _MSC_VER
+#include "StandaloneWindowResize.hpp"
+#endif
+#include "Screen.hpp"
+#include "scripts/UnityEngine.CoreModule/UnityEngine/Object.hpp"
+#include "scripts/UnityEngine.CoreModule/UnityEngine/Vector2.hpp"
+#include "scripts/UnityEngine.CoreModule/UnityEngine/Vector3.hpp"
+#include "scripts/UnityEngine.CoreModule/UnityEngine/Screen.hpp"
+#include "scripts/UnityEngine.CoreModule/UnityEngine/RectTransform.hpp"
+#include "scripts/UnityEngine.CoreModule/UnityEngine/SceneManagement/Scene.hpp"
+
+#include "game.hpp"
+#include "config/config.hpp"
+
+#include <algorithm>
+
+namespace
+{
+	Il2CppMethodPointer ShowNotification_addr = nullptr;
+
+	Il2CppMethodPointer ShowNotification2_addr = nullptr;
+
+	Il2CppMethodPointer get_UITexture_addr = nullptr;
+
+	Il2CppMethodPointer get_CommonHeaderTitle_addr = nullptr;
+
+	Il2CppMethodPointer get_LandscapeUIManager_addr = nullptr;
+
+	Il2CppMethodPointer get_IsLandscapeMode_addr = nullptr;
+	void* get_IsLandscapeMode_orig = nullptr;
+
+	Il2CppMethodPointer SetCameraSizeByOrientation_addr = nullptr;
+
+	Il2CppMethodPointer CheckUIToFrameBufferBlitInstance_addr = nullptr;
+
+    Il2CppMethodPointer SetupSafeArea_addr = nullptr;
+
+    Il2CppMethodPointer AdjustSafeArea_addr = nullptr;
+
+	Il2CppMethodPointer AdjustMissionClearContentsRootRect_addr = nullptr;
+
+	Il2CppMethodPointer AdjustSafeAreaToAnnounceRect_addr = nullptr;
+
+	Il2CppMethodPointer SetBgCameraRenderTexture_addr = nullptr;
+
+	Il2CppMethodPointer CreateRenderTextureFromScreen_addr = nullptr;
+
+	Il2CppMethodPointer ReleaseRenderTexture_addr = nullptr;
+
+	Il2CppMethodPointer IsLockGameCanvas_addr = nullptr;
+
+	Il2CppMethodPointer LockGameCanvas_addr = nullptr;
+
+	Il2CppMethodPointer UnlockGameCanvas_addr = nullptr;
+
+	Il2CppMethodPointer UnlockAllCanvas_addr = nullptr;
+
+	Il2CppMethodPointer ChangeResolution_addr = nullptr;
+
+	Il2CppMethodPointer WaitResizeUI_addr = nullptr;
+	void* WaitResizeUI_orig = nullptr;
+
+	Il2CppMethodPointer GetCanvasScalerList_addr = nullptr;
+
+	Il2CppMethodPointer GetCameraSizeByOrientation_addr = nullptr;
+	void* GetCameraSizeByOrientation_orig = nullptr;
+
+	Il2CppMethodPointer get_DefaultResolution_addr = nullptr;
+	void* get_DefaultResolution_orig = nullptr;
+
+	Il2CppMethodPointer UpdateCanvasScaler_addr = nullptr;
+	void* UpdateCanvasScaler_orig = nullptr;
+
+#ifdef _MSC_VER
+	Il2CppMethodPointer ChangeResizeUIForPC_addr = nullptr;
+	void* ChangeResizeUIForPC_orig = nullptr;
+
+	Il2CppMethodPointer OnPushBandUIButton_addr = nullptr;
+	void* OnPushBandUIButton_orig = nullptr;
+
+	Il2CppMethodPointer RestorePrevSelectedBandMenu_addr = nullptr;
+	void* RestorePrevSelectedBandMenu_orig = nullptr;
+
+	Il2CppMethodPointer IsEnableSwitchBandMenu_addr = nullptr;
+	void* IsEnableSwitchBandMenu_orig = nullptr;
+#endif
+
+	float ratio_vertical = 0.5625f;
+	float ratio_horizontal = 1.7777778f;
+}
+
+static void SetBGCanvasScalerSize()
+{
+	auto bgManager = il2cpp_symbols::get_method_pointer<Il2CppObject * (*)()>(ASSEMBLY_NAME, "Gallop", "BGManager", "get_Instance", 0)();
+	if (bgManager)
+	{
+		auto _mainBgField = il2cpp_class_get_field_from_name(bgManager->klass, "_mainBg");
+		Il2CppObject* _mainBg;
+		il2cpp_field_get_value(bgManager, _mainBgField, &_mainBg);
+
+		if (_mainBg)
+		{
+			UnityEngine::Transform transform = UnityEngine::MonoBehaviour(_mainBg).transform();
+
+			int width = UnityEngine::Screen::width();
+			int height = UnityEngine::Screen::height();
+
+			if (width > height)
+			{
+				auto pos = transform.localPosition();
+
+				if (pos.y == 0)
+				{
+					transform.localPosition(UnityEngine::Vector3{ 0, 0, 0 });
+				}
+			}
+		}
+
+		auto _bgCanvasScalerField = il2cpp_class_get_field_from_name(bgManager->klass, "_bgCanvasScaler");
+		Il2CppObject* _bgCanvasScaler;
+		il2cpp_field_get_value(bgManager, _bgCanvasScalerField, &_bgCanvasScaler);
+
+		if (_bgCanvasScaler)
+		{
+			il2cpp_symbols::get_method_pointer<void (*)(Il2CppObject*, float)>(_bgCanvasScaler->klass, "set_scaleFactor", 1)(_bgCanvasScaler, 1);
+
+			il2cpp_symbols::get_method_pointer<void (*)(Il2CppObject*, int)>(_bgCanvasScaler->klass, "set_uiScaleMode", 1)(_bgCanvasScaler, 1);
+
+			il2cpp_symbols::get_method_pointer<void (*)(Il2CppObject*, int)>(_bgCanvasScaler->klass, "set_screenMatchMode", 1)(_bgCanvasScaler, 0);
+		}
+	}
+}
+
+static void ChangeResizeUI()
+{
+    Il2CppArraySize_t<Il2CppObject*>* scalers = Gallop::UIManager::Instance().gameObject().GetComponentsInChildren(GetRuntimeType("UnityEngine.UI.dll", "UnityEngine.UI", "CanvasScaler"), true);
+
+    for (int i = 0; i < scalers->max_length; i++)
+    {
+        auto scaler = scalers->vector[i];
+        if (scaler)
+        {
+            Gallop::UIManager::UpdateCanvasScaler(scaler);
+        }
+    }
+
+    if (config::unlock_size || config::freeform_window)
+    {
+        SetBGCanvasScalerSize();
+    }
+}
+
+#ifdef _MSC_VER
+static void ChangeResizeUIForPC_hook(Il2CppObject* self, int width, int height)
+{
+	if (!config::unlock_size && !config::freeform_window)
+	{
+		reinterpret_cast<decltype(ChangeResizeUIForPC_hook)*>(ChangeResizeUIForPC_orig)(self, width, height);
+		return;
+	}
+
+    ChangeResizeUI();
+}
+#endif
+
+static Il2CppObject* WaitResizeUI_hook(Il2CppObject* self, bool isPortrait, bool isShowOrientationGuide)
+{
+	if (config::freeform_window)
+	{
+		auto yield = il2cpp_object_new(il2cpp_symbols::get_class("UnityEngine.CoreModule.dll", "UnityEngine", "WaitWhile"));
+		il2cpp_symbols::get_method_pointer<void (*)(Il2CppObject*, Il2CppDelegate*)>(yield->klass, ".ctor", 1)(yield, CreateDelegateStatic(*[]()
+            {
+                static int iterator = 0;
+
+                if (iterator == 0)
+                {
+                    ChangeResizeUI();
+                }
+                else if (iterator == 1)
+                {
+                    Gallop::UIManager::Instance().AdjustSafeArea();
+					Gallop::UIManager::Instance()._bgManager().OnChangeResolutionByGraphicsSettings();
+                }
+                else
+                {
+					Gallop::UIManager::Instance().CreateRenderTextureFromScreen();
+                }
+
+				iterator++;
+
+                return iterator < 2;
+            })
+        );
+		return yield;
+	}
+#ifdef _MSC_VER
+	return reinterpret_cast<Il2CppObject * (*)(Il2CppObject*, bool, bool)>(WaitResizeUI_orig)(self, config::freeform_window ? Gallop::StandaloneWindowResize::IsVirt() : isPortrait, config::ui_loading_show_orientation_guide ? false : isShowOrientationGuide);
+#else
+	return reinterpret_cast<Il2CppObject * (*)(Il2CppObject*, bool, bool)>(WaitResizeUI_orig)(self, config::freeform_window ? Gallop::Screen::IsVertical() : isPortrait, config::ui_loading_show_orientation_guide ? false : isShowOrientationGuide);
+#endif
+}
+
+static float GetCameraSizeByOrientation_hook(int orientation)
+{
+	return 5;
+}
+
+static UnityEngine::Vector2 get_DefaultResolution_hook()
+{
+	int width = Gallop::Screen::Width();
+	int height = Gallop::Screen::Height();
+
+	if (Gallop::Screen::IsVertical())
+	{
+		return UnityEngine::Vector2{ static_cast<float>(height), static_cast<float>(width) };
+	}
+
+	return UnityEngine::Vector2{ static_cast<float>(width), static_cast<float>(height) };
+}
+
+static void OnPushBandUIButton_hook(Il2CppObject* self, uint64_t buttonType)
+{
+	// no-op
+}
+
+static void RestorePrevSelectedBandMenu_hook(Il2CppObject* self)
+{
+	// no-op
+}
+
+static bool IsEnableSwitchBandMenu_hook(Il2CppObject* self)
+{
+	return true;
+}
+
+static void InitAddress()
+{
+	auto UIManager_klass = il2cpp_symbols::get_class(ASSEMBLY_NAME, "Gallop", "UIManager");
+	ShowNotification_addr = il2cpp_symbols::get_method_pointer(UIManager_klass, "ShowNotification", 1);
+	ShowNotification2_addr = il2cpp_symbols::get_method_pointer(UIManager_klass, "ShowNotification", 2);
+	get_UITexture_addr = il2cpp_symbols::get_method_pointer(UIManager_klass, "get_UITexture", 0);
+	get_CommonHeaderTitle_addr = il2cpp_symbols::get_method_pointer(UIManager_klass, "get_CommonHeaderTitle", 0);
+	get_LandscapeUIManager_addr = il2cpp_symbols::get_method_pointer(UIManager_klass, "get_LandscapeUIManager", 0);
+	get_IsLandscapeMode_addr = il2cpp_symbols::get_method_pointer(UIManager_klass, "get_IsLandscapeMode", 0);
+	SetCameraSizeByOrientation_addr = il2cpp_symbols::get_method_pointer(UIManager_klass, "SetCameraSizeByOrientation", 1);
+	CheckUIToFrameBufferBlitInstance_addr = il2cpp_symbols::get_method_pointer(UIManager_klass, "CheckUIToFrameBufferBlitInstance", 0);
+    SetupSafeArea_addr = il2cpp_symbols::get_method_pointer(UIManager_klass, "SetupSafeArea", 0);
+    AdjustSafeArea_addr = il2cpp_symbols::get_method_pointer(UIManager_klass, "AdjustSafeArea", 0);
+	AdjustMissionClearContentsRootRect_addr = il2cpp_symbols::get_method_pointer(UIManager_klass, "AdjustMissionClearContentsRootRect", 0);
+	AdjustSafeAreaToAnnounceRect_addr = il2cpp_symbols::get_method_pointer(UIManager_klass, "AdjustSafeAreaToAnnounceRect", 0);
+	SetBgCameraRenderTexture_addr = il2cpp_symbols::get_method_pointer(UIManager_klass, "SetBgCameraRenderTexture", 1);
+	CreateRenderTextureFromScreen_addr = il2cpp_symbols::get_method_pointer(UIManager_klass, "CreateRenderTextureFromScreen", 0);
+	ReleaseRenderTexture_addr = il2cpp_symbols::get_method_pointer(UIManager_klass, "ReleaseRenderTexture", 0);
+	IsLockGameCanvas_addr = il2cpp_symbols::get_method_pointer(UIManager_klass, "IsLockGameCanvas", 0);
+	LockGameCanvas_addr = il2cpp_symbols::get_method_pointer(UIManager_klass, "LockGameCanvas", 0);
+	UnlockGameCanvas_addr = il2cpp_symbols::get_method_pointer(UIManager_klass, "UnlockGameCanvas", 0);
+	UnlockAllCanvas_addr = il2cpp_symbols::get_method_pointer(UIManager_klass, "UnlockAllCanvas", 0);
+	ChangeResolution_addr = il2cpp_symbols::get_method_pointer(UIManager_klass, "ChangeResolution", 0);
+	WaitResizeUI_addr = il2cpp_symbols::get_method_pointer(UIManager_klass, "WaitResizeUI", 2);
+	GetCanvasScalerList_addr = il2cpp_symbols::get_method_pointer(UIManager_klass, "GetCanvasScalerList", 0);
+	GetCameraSizeByOrientation_addr = il2cpp_symbols::get_method_pointer(UIManager_klass, "GetCameraSizeByOrientation", 1);
+    get_DefaultResolution_addr = il2cpp_symbols::get_method_pointer(UIManager_klass, "get_DefaultResolution", 0);
+    UpdateCanvasScaler_addr = il2cpp_symbols::get_method_pointer(UIManager_klass, "UpdateCanvasScaler", 1);
+#ifdef _MSC_VER
+	ChangeResizeUIForPC_addr = il2cpp_symbols::get_method_pointer(UIManager_klass, "ChangeResizeUIForPC", 2);
+	OnPushBandUIButton_addr = il2cpp_symbols::get_method_pointer(UIManager_klass, "OnPushBandUIButton", 1);
+	RestorePrevSelectedBandMenu_addr = il2cpp_symbols::get_method_pointer(UIManager_klass, "RestorePrevSelectedBandMenu", 0);
+	IsEnableSwitchBandMenu_addr = il2cpp_symbols::get_method_pointer(UIManager_klass, "IsEnableSwitchBandMenu", 0);
+#endif
+}
+
+static void HookMethods()
+{
+	if (config::unlock_size || config::freeform_window)
+	{
+        auto UpdateCanvasScaler_hook = Gallop::UIManager::UpdateCanvasScaler;
+        ADD_HOOK(UpdateCanvasScaler, "Gallop.UIManager::UpdateCanvasScaler at %p\n");
+#ifdef _MSC_VER
+		ADD_HOOK(ChangeResizeUIForPC, "Gallop.UIManager::ChangeResizeUIForPC at %p\n");
+#endif
+	}
+
+	if (config::freeform_window || config::ui_loading_show_orientation_guide)
+	{
+		ADD_HOOK(WaitResizeUI, "Gallop.UIManager::WaitResizeUI at %p\n");
+	}
+
+	if (config::freeform_window)
+	{
+		ADD_HOOK(GetCameraSizeByOrientation, "Gallop.UIManager::GetCameraSizeByOrientation at %p\n");
+        ADD_HOOK(get_DefaultResolution, "Gallop.UIManager::get_DefaultResolution at %p\n");
+#ifdef _MSC_VER
+		ADD_HOOK(OnPushBandUIButton, "Gallop.UIManager::OnPushBandUIButton at %p\n");
+		ADD_HOOK(RestorePrevSelectedBandMenu, "Gallop.UIManager::RestorePrevSelectedBandMenu at %p\n");
+		ADD_HOOK(IsEnableSwitchBandMenu, "Gallop.UIManager::IsEnableSwitchBandMenu at %p\n");
+#endif
+	}
+}
+
+STATIC
+{
+	il2cpp_symbols::init_callbacks.emplace_back(InitAddress);
+	il2cpp_symbols::init_callbacks.emplace_back(HookMethods);
+}
+
+namespace Gallop
+{
+	const char* UIManager::namespaze = "Gallop";
+	const char* UIManager::klassName = "UIManager";
+
+	Il2CppObject* UIManager::_noticeCanvas()
+	{
+		auto _noticeCanvasField = il2cpp_class_get_field_from_name(instance->klass, "_noticeCanvas");
+		Il2CppObject* _noticeCanvas;
+		il2cpp_field_get_value(instance, _noticeCanvasField, &_noticeCanvas);
+
+		return _noticeCanvas;
+	}
+
+	Il2CppObject* UIManager::_bgCamera()
+	{
+		auto _bgCameraField = il2cpp_class_get_field_from_name(instance->klass, "_bgCamera");
+		Il2CppObject* _bgCamera;
+		il2cpp_field_get_value(instance, _bgCameraField, &_bgCamera);
+
+		return _bgCamera;
+	}
+
+	Il2CppObject* UIManager::_uiCamera()
+	{
+		auto _uiCameraField = il2cpp_class_get_field_from_name(instance->klass, "_uiCamera");
+		Il2CppObject* _uiCamera;
+		il2cpp_field_get_value(instance, _uiCameraField, &_uiCamera);
+
+		return _uiCamera;
+	}
+
+	BGManager UIManager::_bgManager()
+	{
+		auto _bgManagerField = il2cpp_class_get_field_from_name(instance->klass, "_bgManager");
+		Il2CppObject* _bgManager;
+		il2cpp_field_get_value(instance, _bgManagerField, &_bgManager);
+
+		return _bgManager;
+	}
+
+	Il2CppObject* UIManager::_uiToFrameBufferRenderCameraData()
+	{
+		auto _uiToFrameBufferRenderCameraDataField = il2cpp_class_get_field_from_name(instance->klass, "_uiToFrameBufferRenderCameraData");
+		if (_uiToFrameBufferRenderCameraDataField)
+		{
+			Il2CppObject* _uiToFrameBufferRenderCameraData;
+			il2cpp_field_get_value(instance, _uiToFrameBufferRenderCameraDataField, &_uiToFrameBufferRenderCameraData);
+			return _uiToFrameBufferRenderCameraData;
+		}
+		return nullptr;
+	}
+
+	Il2CppObject* UIManager::_uiCommandBuffer()
+	{
+		auto _uiCommandBufferField = il2cpp_class_get_field_from_name(instance->klass, "_uiCommandBuffer");
+		if (_uiCommandBufferField)
+		{
+			Il2CppObject* _uiCommandBuffer;
+			il2cpp_field_get_value(instance, _uiCommandBufferField, &_uiCommandBuffer);
+			return _uiCommandBuffer;
+		}
+		return nullptr;
+	}
+
+	Il2CppObject* UIManager::_blitToFrameMaterial()
+	{
+		auto _blitToFrameMaterialField = il2cpp_class_get_field_from_name(instance->klass, "_blitToFrameMaterial");
+		if (_blitToFrameMaterialField)
+		{
+			Il2CppObject* _blitToFrameMaterial;
+			il2cpp_field_get_value(instance, _blitToFrameMaterialField, &_blitToFrameMaterial);
+			return _blitToFrameMaterial;
+		}
+		return nullptr;
+	}
+
+	Il2CppObject* UIManager::_noImageEffectUICamera()
+	{
+		auto _noImageEffectUICameraField = il2cpp_class_get_field_from_name(instance->klass, "_noImageEffectUICamera");
+		Il2CppObject* _noImageEffectUICamera;
+		il2cpp_field_get_value(instance, _noImageEffectUICameraField, &_noImageEffectUICamera);
+
+		return _noImageEffectUICamera;
+	}
+
+	Il2CppObject* UIManager::_noImageEffectCanvas()
+	{
+		auto _noImageEffectCanvasField = il2cpp_class_get_field_from_name(instance->klass, "_noImageEffectCanvas");
+		Il2CppObject* _noImageEffectCanvas;
+		il2cpp_field_get_value(instance, _noImageEffectCanvasField, &_noImageEffectCanvas);
+
+		return _noImageEffectCanvas;
+	}
+
+	Il2CppObject* UIManager::_uiToFrameBufferBlitCamera()
+	{
+		auto _uiToFrameBufferBlitCameraField = il2cpp_class_get_field_from_name(instance->klass, "_uiToFrameBufferBlitCamera");
+		Il2CppObject* _uiToFrameBufferBlitCamera;
+		il2cpp_field_get_value(instance, _uiToFrameBufferBlitCameraField, &_uiToFrameBufferBlitCamera);
+
+		return _uiToFrameBufferBlitCamera;
+	}
+
+	Il2CppObject* UIManager::_mainCanvas()
+	{
+		auto _mainCanvasField = il2cpp_class_get_field_from_name(instance->klass, "_mainCanvas");
+		Il2CppObject* _mainCanvas;
+		il2cpp_field_get_value(instance, _mainCanvasField, &_mainCanvas);
+
+		return _mainCanvas;
+	}
+
+	Il2CppObject* UIManager::_gameCanvas()
+	{
+		auto _gameCanvasField = il2cpp_class_get_field_from_name(instance->klass, "_gameCanvas");
+		Il2CppObject* _gameCanvas;
+		il2cpp_field_get_value(instance, _gameCanvasField, &_gameCanvas);
+
+		return _gameCanvas;
+	}
+
+	Il2CppObject* UIManager::_systemCanvas()
+	{
+		auto _systemCanvasField = il2cpp_class_get_field_from_name(instance->klass, "_systemCanvas");
+		Il2CppObject* _systemCanvas;
+		il2cpp_field_get_value(instance, _systemCanvasField, &_systemCanvas);
+
+		return _systemCanvas;
+	}
+
+	Il2CppObject* UIManager::UITexture()
+	{
+		return reinterpret_cast<Il2CppObject * (*)(Il2CppObject*)>(get_UITexture_addr)(instance);
+	}
+
+	void UIManager::UITexture(Il2CppObject* value)
+	{
+		auto _uiTextureField = il2cpp_class_get_field_from_name(instance->klass, "_uiTexture");
+		il2cpp_field_set_value(instance, _uiTextureField, value);
+	}
+
+	Il2CppObject* UIManager::CommonHeaderTitle()
+	{
+		return reinterpret_cast<Il2CppObject * (*)(Il2CppObject*)>(get_CommonHeaderTitle_addr)(instance);
+	}
+
+#ifdef _MSC_VER
+	Il2CppObject* UIManager::LandscapeUIManager()
+	{
+		return reinterpret_cast<Il2CppObject * (*)(Il2CppObject*)>(get_LandscapeUIManager_addr)(instance);
+	}
+#endif
+
+	void UIManager::ShowNotification(Il2CppString* text)
+	{
+		if (ShowNotification2_addr)
+		{
+			reinterpret_cast<void (*)(Il2CppObject*, Il2CppString*, uint64_t)>(ShowNotification2_addr)(instance, text, 0);
+			return;
+		}
+		reinterpret_cast<void (*)(Il2CppObject*, Il2CppString*)>(ShowNotification_addr)(instance, text);
+	}
+
+	void UIManager::SetCameraSizeByOrientation(UnityEngine::ScreenOrientation orientation)
+	{
+		reinterpret_cast<void (*)(Il2CppObject*, UnityEngine::ScreenOrientation)>(SetCameraSizeByOrientation_addr)(instance, orientation);
+	}
+
+	void UIManager::CheckUIToFrameBufferBlitInstance()
+	{
+		reinterpret_cast<void (*)(Il2CppObject*)>(CheckUIToFrameBufferBlitInstance_addr)(instance);
+	}
+
+    void UIManager::SetupSafeArea()
+    {
+        reinterpret_cast<void (*)(Il2CppObject*)>(SetupSafeArea_addr)(instance);
+    }
+
+    void UIManager::AdjustSafeArea()
+    {
+        reinterpret_cast<void (*)(Il2CppObject*)>(AdjustSafeArea_addr)(instance);
+    }
+
+	void UIManager::UpdateCanvasScaler(Il2CppObject* canvasScaler)
+	{
+        auto width = Gallop::Screen::Width();
+        auto height = Gallop::Screen::Height();
+
+		auto gameObject = il2cpp_symbols::get_method_pointer<Il2CppObject * (*)(Il2CppObject*)>(canvasScaler->klass, "get_gameObject", 0)(canvasScaler);
+
+		bool keepActive = il2cpp_symbols::get_method_pointer<bool (*)(Il2CppObject*)>(gameObject->klass, "get_activeSelf", 0)(gameObject);
+
+		il2cpp_symbols::get_method_pointer<void (*)(Il2CppObject*, bool)>(gameObject->klass, "SetActive", 1)(gameObject, true);
+
+		auto scaleMode = il2cpp_symbols::get_method_pointer<int (*)(Il2CppObject*)>(canvasScaler->klass, "get_uiScaleMode", 0)(canvasScaler);
+
+		if (UnityEngine::Object::Name(canvasScaler)->chars == il2cppstring(IL2CPP_STRING("SystemCanvas")) ||
+		    UnityEngine::Object::Name(canvasScaler)->chars == il2cppstring(IL2CPP_STRING("GameCanvas")) ||
+		    UnityEngine::Object::Name(canvasScaler)->chars == il2cppstring(IL2CPP_STRING("BGCanvas")) ||
+		    UnityEngine::Object::Name(canvasScaler)->chars == il2cppstring(IL2CPP_STRING("NoImageEffectGameCanvas")))
+		{
+			il2cpp_symbols::get_method_pointer<void (*)(Il2CppObject*, int)>(canvasScaler->klass, "set_uiScaleMode", 1)(canvasScaler, 0);
+
+			scaleMode = 0;
+		}
+
+		if (config::freeform_window)
+		{
+			if (scaleMode == 1)
+			{
+				if (width < height)
+				{
+					float scale = min(config::freeform_ui_scale_portrait, max(1.0f, static_cast<float>(height) * ratio_vertical) * config::freeform_ui_scale_portrait);
+					il2cpp_symbols::get_method_pointer<void (*)(Il2CppObject*, UnityEngine::Vector2)>(canvasScaler->klass, "set_referenceResolution", 1)(canvasScaler, UnityEngine::Vector2{ static_cast<float>(width / scale), static_cast<float>(height / scale) });
+				}
+				else
+				{
+					float scale = min(config::freeform_ui_scale_landscape, max(1.0f, static_cast<float>(width) / ratio_horizontal) * config::freeform_ui_scale_landscape);
+					il2cpp_symbols::get_method_pointer<void (*)(Il2CppObject*, UnityEngine::Vector2)>(canvasScaler->klass, "set_referenceResolution", 1)(canvasScaler, UnityEngine::Vector2{ static_cast<float>(width / scale), static_cast<float>(height / scale) });
+
+				}
+			}
+
+			if (scaleMode == 0)
+			{
+				if (width < height)
+				{
+					float scale = min(config::freeform_ui_scale_portrait, max(1.0f, static_cast<float>(height) * ratio_vertical) * config::freeform_ui_scale_portrait);
+					il2cpp_symbols::get_method_pointer<void (*)(Il2CppObject*, float)>(canvasScaler->klass, "set_scaleFactor", 1)(canvasScaler, scale);
+				}
+				else
+				{
+					float scale = min(config::freeform_ui_scale_landscape, max(1.0f, static_cast<float>(width) / ratio_horizontal) * config::freeform_ui_scale_landscape);
+					il2cpp_symbols::get_method_pointer<void (*)(Il2CppObject*, float)>(canvasScaler->klass, "set_scaleFactor", 1)(canvasScaler, scale);
+				}
+			}
+		}
+		else
+		{
+			if (scaleMode == 1)
+			{
+				if (width < height)
+				{
+					float scale = min(config::ui_scale, max(1.0f, static_cast<float>(height) * ratio_vertical) * config::ui_scale);
+					il2cpp_symbols::get_method_pointer<void (*)(Il2CppObject*, UnityEngine::Vector2)>(canvasScaler->klass, "set_referenceResolution", 1)(canvasScaler, UnityEngine::Vector2{ static_cast<float>(width / scale), static_cast<float>(height / scale) });
+				}
+				else
+				{
+					float scale = min(config::ui_scale, max(1.0f, static_cast<float>(width) / ratio_horizontal) * config::ui_scale);
+					il2cpp_symbols::get_method_pointer<void (*)(Il2CppObject*, UnityEngine::Vector2)>(canvasScaler->klass, "set_referenceResolution", 1)(canvasScaler, UnityEngine::Vector2{ static_cast<float>(width / scale), static_cast<float>(height / scale) });
+				}
+			}
+			if (scaleMode == 0)
+			{
+				// set scale factor to make ui bigger on hi-res screen
+				if (width < height)
+				{
+					float scale = min(config::ui_scale, max(1.0f, static_cast<float>(height) * ratio_vertical) * config::ui_scale);
+					il2cpp_symbols::get_method_pointer<void (*)(Il2CppObject*, float)>(canvasScaler->klass, "set_scaleFactor", 1)(canvasScaler, scale);
+				}
+				else
+				{
+					float scale = min(config::ui_scale, max(1.0f, static_cast<float>(width) / ratio_horizontal) * config::ui_scale);
+					il2cpp_symbols::get_method_pointer<void (*)(Il2CppObject*, float)>(canvasScaler->klass, "set_scaleFactor", 1)(canvasScaler, scale);
+				}
+			}
+		}
+
+		// il2cpp_symbols::get_method_pointer<void (*)(Il2CppObject*, int)>(canvasScaler->klass, "set_uiScaleMode", 1)(canvasScaler, 0);
+
+		// il2cpp_symbols::get_method_pointer<void (*)(Il2CppObject*, int)>(canvasScaler->klass, "set_screenMatchMode", 1)(canvasScaler, 0);
+
+		il2cpp_symbols::get_method_pointer<void (*)(Il2CppObject*, bool)>(gameObject->klass, "SetActive", 1)(gameObject, keepActive);
+	}
+
+	void UIManager::AdjustMissionClearContentsRootRect()
+	{
+		reinterpret_cast<void (*)(Il2CppObject*)>(AdjustMissionClearContentsRootRect_addr)(instance);
+	}
+
+	void UIManager::AdjustSafeAreaToAnnounceRect()
+	{
+		if (AdjustSafeAreaToAnnounceRect_addr)
+		{
+			reinterpret_cast<void (*)(Il2CppObject*)>(AdjustSafeAreaToAnnounceRect_addr)(instance);
+		}
+	}
+
+	void UIManager::SetBgCameraRenderTexture(Il2CppObject* texture)
+	{
+		reinterpret_cast<void (*)(Il2CppObject*, Il2CppObject*)>(SetBgCameraRenderTexture_addr)(instance, texture);
+	}
+
+	void UIManager::CreateRenderTextureFromScreen()
+	{
+		reinterpret_cast<void (*)(Il2CppObject*)>(CreateRenderTextureFromScreen_addr)(instance);
+	}
+
+	void UIManager::ReleaseRenderTexture()
+	{
+		reinterpret_cast<void (*)(Il2CppObject*)>(ReleaseRenderTexture_addr)(instance);
+	}
+
+	bool UIManager::IsLockGameCanvas()
+	{
+		return reinterpret_cast<bool (*)(Il2CppObject*)>(IsLockGameCanvas_addr)(instance);
+	}
+
+	void UIManager::LockGameCanvas()
+	{
+		reinterpret_cast<void (*)(Il2CppObject*)>(LockGameCanvas_addr)(instance);
+	}
+
+	void UIManager::UnlockGameCanvas()
+	{
+		reinterpret_cast<void (*)(Il2CppObject*)>(UnlockGameCanvas_addr)(instance);
+	}
+
+	void UIManager::UnlockAllCanvas()
+	{
+		reinterpret_cast<void (*)(Il2CppObject*)>(UnlockAllCanvas_addr)(instance);
+	}
+
+	void UIManager::ChangeResolution()
+	{
+		if (!ChangeResolution_addr)
+		{
+			return;
+		}
+
+		reinterpret_cast<void (*)(Il2CppObject*)>(ChangeResolution_addr)(instance);
+	}
+
+	Il2CppObject* UIManager::WaitResizeUI(bool isPortrait, bool isShowOrientationGuide)
+	{
+		return reinterpret_cast<Il2CppObject * (*)(Il2CppObject*, bool, bool)>(WaitResizeUI_addr)(instance, isPortrait, isShowOrientationGuide);
+	}
+
+	Il2CppArraySize_t<Il2CppObject*>* UIManager::GetCanvasScalerList()
+	{
+		return reinterpret_cast<Il2CppArraySize_t<Il2CppObject*>*(*)(Il2CppObject*)>(GetCanvasScalerList_addr)(instance);
+	}
+
+	float UIManager::GetCameraSizeByOrientation(ScreenOrientation orientation)
+	{
+		return reinterpret_cast<decltype(GetCameraSizeByOrientation)*>(GetCameraSizeByOrientation_addr)(orientation);
+	}
+
+	UnityEngine::Vector2 UIManager::DefaultResolution()
+	{
+		return reinterpret_cast<decltype(DefaultResolution)*>(get_DefaultResolution_addr)();
+	}
+
+	bool UIManager::IsLandscapeMode()
+	{
+		if (get_IsLandscapeMode_addr)
+		{
+			return reinterpret_cast<bool (*)()>(get_IsLandscapeMode_addr)();
+		}
+
+#ifdef _MSC_VER
+		if (Game::CurrentGameStore == Game::Store::Steam)
+		{
+			return true;
+		}
+#endif
+
+		return false;
+	}
+
+#ifdef _MSC_VER
+	void UIManager::ChangeResizeUIForPC(int width, int height)
+	{
+		if (ChangeResizeUIForPC_orig)
+		{
+			ChangeResizeUIForPC_hook(instance, width, height);
+			return;
+		}
+
+		reinterpret_cast<void (*)(Il2CppObject*, int, int)>(ChangeResizeUIForPC_addr)(instance, width, height);
+	}
+#endif
+}

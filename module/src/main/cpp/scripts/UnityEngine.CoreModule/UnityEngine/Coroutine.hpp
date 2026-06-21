@@ -1,0 +1,19 @@
+#pragma once
+#include "il2cpp/il2cpp_symbols.hpp"
+
+#include "YieldInstruction.hpp"
+
+namespace UnityEngine
+{
+	class Coroutine : public YieldInstruction
+	{
+	public:
+		Coroutine(Il2CppObject* object);
+
+		void ReleaseCoroutine();
+
+		static void ReleaseCoroutine(void* ptr);
+
+		void* m_Ptr;
+	};
+}

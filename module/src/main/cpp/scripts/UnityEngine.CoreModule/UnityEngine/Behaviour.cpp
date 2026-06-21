@@ -1,0 +1,42 @@
+#include "../UnityEngine.CoreModule.hpp"
+#include "../../ScriptInternal.hpp"
+#include "Behaviour.hpp"
+
+namespace
+{
+	Il2CppMethodPointer get_enabled_addr = nullptr;
+
+	Il2CppMethodPointer set_enabled_addr = nullptr;
+
+	Il2CppMethodPointer get_isActiveAndEnabled_addr = nullptr;
+}
+
+static void InitAddress()
+{
+	get_enabled_addr = il2cpp_resolve_icall("UnityEngine.Behaviour::get_enabled");
+	set_enabled_addr = il2cpp_resolve_icall("UnityEngine.Behaviour::set_enabled");
+	get_isActiveAndEnabled_addr = il2cpp_resolve_icall("UnityEngine.Behaviour::get_isActiveAndEnabled");
+}
+
+STATIC
+{
+	il2cpp_symbols::init_callbacks.emplace_back(InitAddress);
+}
+
+namespace UnityEngine
+{
+	bool Behaviour::enabled()
+	{
+		return reinterpret_cast<bool (*)(Il2CppObject*)>(get_enabled_addr)(instance);
+	}
+
+	void Behaviour::enabled(bool value)
+	{
+		reinterpret_cast<void (*)(Il2CppObject*, bool)>(set_enabled_addr)(instance, value);
+	}
+	
+	bool Behaviour::isActiveAndEnabled()
+	{
+		return reinterpret_cast<bool (*)(Il2CppObject*)>(get_isActiveAndEnabled_addr)(instance);
+	}
+}
