@@ -263,8 +263,13 @@ namespace Localify
 
 		auto array = optionItemSimple.GetComponentsInChildren(GetRuntimeType("umamusume.dll", "Gallop", "TextCommon"), false);
 
-		Gallop::TextCommon(array->vector[0]).text(il2cpp_string_new16(text));
-		Gallop::TextCommon(array->vector[1]).text(il2cpp_string_new16(title));
+		auto textCommon = Gallop::TextCommon(array->vector[0]);
+        textCommon.TextId(0);
+        textCommon.text(il2cpp_string_new16(text));
+
+        auto titleTextCommon = Gallop::TextCommon(array->vector[1]);
+        titleTextCommon.TextId(0);
+        titleTextCommon.text(il2cpp_string_new16(title));
 
 		return optionItemSimple;
 	}

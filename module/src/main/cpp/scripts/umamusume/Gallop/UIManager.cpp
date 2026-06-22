@@ -345,7 +345,7 @@ namespace Gallop
 		Il2CppObject* _bgManager;
 		il2cpp_field_get_value(instance, _bgManagerField, &_bgManager);
 
-		return _bgManager;
+		return { _bgManager };
 	}
 
 	Il2CppObject* UIManager::_uiToFrameBufferRenderCameraData()

@@ -1,6 +1,7 @@
 #pragma once
-#include "stdinclude.hpp"
 #include "UIParts.hpp"
+
+#include "config/config.hpp"
 
 typedef rapidjson::GenericDocument<rapidjson::UTF16<Il2CppChar>> U16Document;
 typedef rapidjson::GenericValue<rapidjson::UTF16<Il2CppChar>> U16Value;

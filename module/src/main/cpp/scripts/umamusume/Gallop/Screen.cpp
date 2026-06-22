@@ -190,14 +190,10 @@ static bool IsCurrentOrientation_hook(UnityEngine::ScreenOrientation target)
 
 static void SetResolution_hook(int w, int h, bool fullscreen, bool forceUpdate)
 {
-	LOGD("SetResolution_hook: %d, %d, %d, %d", w, h, fullscreen, forceUpdate);
-	PrintStackTrace();
 }
 
 static void SetResolution2_hook(int w, int h, bool fullscreen, bool forceUpdate, bool skipKeepAspect)
 {
-	LOGD("SetResolution2_hook: %d, %d, %d, %d, %d", w, h, fullscreen, forceUpdate, skipKeepAspect);
-	PrintStackTrace();
 }
 
 static int get_OriginalScreenWidth_hook()

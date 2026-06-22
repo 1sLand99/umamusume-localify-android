@@ -82,6 +82,7 @@ void SetResolution_Injected_hook(int width, int height, int fullscreenMode, Unit
 	}
 #endif
 
+    PrintStackTrace();
 	reinterpret_cast<decltype(SetResolution_Injected_hook)*>(SetResolution_Injected_addr)(width, height, fullscreenMode, perferredRefreshRate);
 }
 

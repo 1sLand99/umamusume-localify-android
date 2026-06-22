@@ -23,6 +23,7 @@
 #define ABI "unknown"
 #endif
 
+#include <bits/get_device_api_level_inlines.h>
 #include <sys/system_properties.h>
 #include <dlfcn.h>
 #include <dobby.h>

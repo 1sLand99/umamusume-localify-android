@@ -150,7 +150,7 @@ inline Il2CppReflectionMethod* GetRuntimeMethodInfo(R(*fn)(T...), bool isStatic 
 		{
 			methodInfo->flags = METHOD_ATTRIBUTE_STATIC;
 		}
-		methodInfo->parameters_count = sizeof...(T) - 1;
+		methodInfo->parameters_count = max(static_cast<size_t>(sizeof...(T) - 1), static_cast<size_t>(0));
 
 		return il2cpp_method_get_object(reinterpret_cast<MethodInfo*>(methodInfo), methodInfo->klass);
 	}
@@ -166,8 +166,8 @@ inline Il2CppReflectionMethod* GetRuntimeMethodInfo(R(*fn)(T...), bool isStatic 
 	{
 		methodInfo->flags = METHOD_ATTRIBUTE_STATIC;
 	}
-	methodInfo->parameters_count = sizeof...(T);
-	// methodInfo->return_type = il2cpp_class_get_type(il2cpp_defaults.void_class);
+	methodInfo->parameters_count = max(static_cast<size_t>(sizeof...(T) - 1), static_cast<size_t>(0));
+//	methodInfo->return_type = il2cpp_class_get_type(il2cpp_defaults.object_class);
 
 	// methodInfo->nativeFunction = reinterpret_cast<Il2CppMethodPointer>(fn);
 	// methodInfo->is_marshaled_from_native = true;

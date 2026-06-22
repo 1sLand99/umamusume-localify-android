@@ -64,9 +64,7 @@ namespace {
             il2cpp_dump();
         }
 
-        LOGD("init_defaults");
         il2cpp_symbols::init_defaults();
-        LOGD("init_defaults OK");
         il2cpp_symbols::call_init_callbacks();
 
         il2cpp_symbols::late_init_callbacks.emplace_back(patch_game_assembly);
@@ -79,24 +77,25 @@ namespace {
         const auto result = reinterpret_cast<decltype(il2cpp_init_hook) *>(il2cpp_init_orig)(
                 domain_name);
 
-        auto unityVersion = il2cpp_resolve_icall_type<Il2CppString* (*)()>("UnityEngine.Application::get_unityVersion")();
+        auto unityVersion = il2cpp_resolve_icall_type<Il2CppString *(*)()>(
+                "UnityEngine.Application::get_unityVersion")();
 
-        LOGD("UNITY: %s", il2cpp_u8(unityVersion->chars).data());
-	if (IL2CPP_BASIC_STRING(unityVersion->chars).contains(IL2CPP_STRING("2020")))
-        {
-            LOGD("Unity 2020");
+        if (IL2CPP_BASIC_STRING(unityVersion->chars).contains(IL2CPP_STRING("2020"))) {
             Game::CurrentUnityVersion = Game::UnityVersion::Unity20;
-        }
-        else
-        {
-            LOGD("Unity 2022");
+        } else {
             Game::CurrentUnityVersion = Game::UnityVersion::Unity22;
         }
 
-        il2cpp_symbols::il2cpp_domain = il2cpp_domain_get();
-        init_il2cpp();
+        if (result)
+        {
+            il2cpp_symbols::il2cpp_domain = il2cpp_domain_get();
+            if (Game::CurrentUnityVersion != Game::UnityVersion::Unity20)
+            {
+                init_il2cpp();
+            }
 
-        DobbyDestroy(il2cpp_init_addr);
+            DobbyDestroy(il2cpp_init_addr);
+        }
         return result;
     }
 
@@ -1135,11 +1134,9 @@ namespace {
                     if (uiManager) {
                         // uiManager.SetupSafeArea();
                         uiManager.AdjustSafeArea();
-                        Il2CppObject *_bgManager = uiManager._bgManager();
+                        auto _bgManager = uiManager._bgManager();
                         if (_bgManager) {
-                            il2cpp_symbols::get_method_pointer<void (*)(Il2CppObject *)>(
-                                    _bgManager->klass, "OnChangeResolutionByGraphicsSettings",
-                                    0)(_bgManager);
+                            _bgManager.OnChangeResolutionByGraphicsSettings();
                         }
 
                         uiManager.CreateRenderTextureFromScreen();
@@ -1434,12 +1431,60 @@ namespace {
         }
 
         if (config::freeform_window) {
-            const auto width = UnityEngine::Screen::width();
-            const auto height = UnityEngine::Screen::height();
+            auto javaVM = il2cpp_symbols::get_method_pointer<JavaVM* (*)()>("UnityEngine.AndroidJNIModule.dll", "UnityEngine", "AndroidJNI", "GetJavaVM", 0)();
 
-            const auto isPortrait = width <= height;
-            Gallop::Screen::OriginalScreenWidth(isPortrait ? height : width);
-            Gallop::Screen::OriginalScreenHeight(isPortrait ? width : height);
+            JNIEnv* env;
+            jint res = javaVM->GetEnv(reinterpret_cast<void **>(&env), JNI_VERSION_1_6);
+
+            if (res == JNI_OK) {
+                auto il2cppActivity = il2cpp_symbols::get_method_pointer<Il2CppObject* (*)()>("UnityEngine.AndroidJNIModule.dll", "UnityEngine.Android", "AndroidApp", "get_Activity", 0)();
+                auto activity = il2cpp_symbols::get_method_pointer<jobject (*)(Il2CppObject*)>(il2cppActivity->klass, "GetRawObject", 0)(il2cppActivity);
+
+                jclass activityClass = env->GetObjectClass(activity);
+                jmethodID getWindowManagerMethod = env->GetMethodID(activityClass, "getWindowManager", "()Landroid/view/WindowManager;");
+                jobject windowManager = env->CallObjectMethod(activity, getWindowManagerMethod);
+
+                jclass windowManagerClass = env->GetObjectClass(windowManager);
+                jmethodID getCurrentWindowMetricsMethod = env->GetMethodID(windowManagerClass, "getCurrentWindowMetrics", "()Landroid/view/WindowMetrics;");
+
+                auto metrics = env->CallObjectMethod(windowManager, getCurrentWindowMetricsMethod);
+
+                auto metricsClass = env->GetObjectClass(metrics);
+
+                auto getRectId = env->GetMethodID(metricsClass, "getBounds", "()Landroid/graphics/Rect;");
+                auto rect = env->CallObjectMethod(metrics, getRectId);
+
+                auto rectClass = env->GetObjectClass(rect);
+
+                auto widthId = env->GetMethodID(rectClass, "width", "()I");
+                const jint width = env->CallIntMethod(rect, widthId);
+
+                auto heightId = env->GetMethodID(rectClass, "height", "()I");
+                const jint height = env->CallIntMethod(rect, heightId);
+
+                const auto isPortrait = width <= height;
+                Gallop::Screen::OriginalScreenWidth(isPortrait ? height : width);
+                Gallop::Screen::OriginalScreenHeight(isPortrait ? width : height);
+
+                ResizeWindow(width, height);
+
+                jclass activityInfoClass = env->FindClass("android/content/pm/ActivityInfo");
+                jfieldID SCREEN_ORIENTATION_FieldID = env->GetStaticFieldID(activityInfoClass, "SCREEN_ORIENTATION_FULL_USER", "I");
+                jint SCREEN_ORIENTATION = env->GetStaticIntField(activityInfoClass, SCREEN_ORIENTATION_FieldID);
+
+                jmethodID setRequestedOrientation = env->GetMethodID(activityClass, "setRequestedOrientation", "(I)V");
+
+                env->CallVoidMethod(activity, setRequestedOrientation, SCREEN_ORIENTATION);
+
+                env->DeleteLocalRef(activityClass);
+                env->DeleteLocalRef(windowManager);
+                env->DeleteLocalRef(windowManagerClass);
+                env->DeleteLocalRef(metrics);
+                env->DeleteLocalRef(metricsClass);
+                env->DeleteLocalRef(rect);
+                env->DeleteLocalRef(rectClass);
+                env->DeleteLocalRef(activityInfoClass);
+            }
         }
 
         if (!config::unlock_live_chara) {
@@ -2050,8 +2095,6 @@ onConfigurationChanged_native(JNIEnv *env, jobject /*this*/, jobject activity, j
         return;
     }
 
-    auto configClass = env->GetObjectClass(newConfig);
-
     auto windowMetricsCalculatorClass = env->FindClass(
             "androidx/window/layout/WindowMetricsCalculatorCompat");
     auto windowMetricsCalculatorInitId = env->GetMethodID(windowMetricsCalculatorClass, "<init>",
@@ -2077,6 +2120,12 @@ onConfigurationChanged_native(JNIEnv *env, jobject /*this*/, jobject activity, j
     auto heightId = env->GetMethodID(rectClass, "height", "()I");
     const jint height = env->CallIntMethod(rect, heightId);
 
+    env->DeleteLocalRef(windowMetricsCalculatorClass);
+    env->DeleteLocalRef(windowMetricsCalculator);
+    env->DeleteLocalRef(metrics);
+    env->DeleteLocalRef(metricsClass);
+    env->DeleteLocalRef(rect);
+    env->DeleteLocalRef(rectClass);
 
     auto gameSystem = Gallop::GameSystem::Instance();
 

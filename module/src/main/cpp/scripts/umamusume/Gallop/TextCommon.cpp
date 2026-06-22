@@ -8,6 +8,8 @@ namespace
 {
 	Il2CppMethodPointer TextCommon_get_TextId_addr = nullptr;
 
+	Il2CppMethodPointer TextCommon_set_TextId_addr = nullptr;
+
 	Il2CppMethodPointer TextCommon_set_FontColor_addr = nullptr;
 
 	Il2CppMethodPointer TextCommon_set_OutlineColor_addr = nullptr;
@@ -95,6 +97,7 @@ static void InitAddress()
 {
 	auto TextCommon_klass = il2cpp_symbols::get_class(ASSEMBLY_NAME, "Gallop", "TextCommon");
 	TextCommon_get_TextId_addr = il2cpp_symbols::get_method_pointer(TextCommon_klass, "get_TextId", 0);
+	TextCommon_set_TextId_addr = il2cpp_symbols::get_method_pointer(TextCommon_klass, "set_TextId", 1);
 	TextCommon_set_FontColor_addr = il2cpp_symbols::get_method_pointer(TextCommon_klass, "set_FontColor", 1);
 	TextCommon_set_OutlineColor_addr = il2cpp_symbols::get_method_pointer(TextCommon_klass, "set_OutlineColor", 1);
 	TextCommon_set_OutlineSize_addr = il2cpp_symbols::get_method_pointer(TextCommon_klass, "set_OutlineSize", 1);
@@ -128,6 +131,11 @@ namespace Gallop
 	int TextCommon::TextId()
 	{
 		return reinterpret_cast<int (*)(Il2CppObject*)>(TextCommon_get_TextId_addr)(instance);
+	}
+
+	void TextCommon::TextId(int value)
+	{
+		reinterpret_cast<void (*)(Il2CppObject*, int)>(TextCommon_set_TextId_addr)(instance, value);
 	}
 
 	void TextCommon::FontColor(int value)
