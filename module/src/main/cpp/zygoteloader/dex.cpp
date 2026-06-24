@@ -135,14 +135,6 @@ void dex_load_and_invoke(
     find_method(m_load_class, c_class_loader, "loadClass",
                 "(Ljava/lang/String;)Ljava/lang/Class;");
 
-    auto calculatorClass = static_cast<jclass>(env->CallObjectMethod(
-            o_dex_class_loader,
-            m_load_class,
-            new_string("androidx.window.layout.WindowMetricsCalculator")
-    ));
-
-    env->NewGlobalRef(calculatorClass);
-
     auto c_loader = static_cast<jclass>(env->CallObjectMethod(
             o_dex_class_loader,
             m_load_class,

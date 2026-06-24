@@ -86,11 +86,9 @@ namespace {
             Game::CurrentUnityVersion = Game::UnityVersion::Unity22;
         }
 
-        if (result)
-        {
+        if (result) {
             il2cpp_symbols::il2cpp_domain = il2cpp_domain_get();
-            if (Game::CurrentUnityVersion != Game::UnityVersion::Unity20)
-            {
+            if (Game::CurrentUnityVersion != Game::UnityVersion::Unity20) {
                 init_il2cpp();
             }
 
@@ -1325,6 +1323,10 @@ namespace {
             if (sceneName == IL2CPP_STRING("Live")) {
                 auto controller = Gallop::SceneManager::Instance().GetCurrentViewController();
 
+                if (controller) {
+                    LOGD("CONTROLLER: %s", controller->klass->name);
+                }
+
                 if (controller && controller->klass->name == "LiveViewController"s) {
                     auto director = GetSingletonInstance(
                             il2cpp_symbols::get_class("umamusume.dll", "Gallop.Live",
@@ -1431,27 +1433,37 @@ namespace {
         }
 
         if (config::freeform_window) {
-            auto javaVM = il2cpp_symbols::get_method_pointer<JavaVM* (*)()>("UnityEngine.AndroidJNIModule.dll", "UnityEngine", "AndroidJNI", "GetJavaVM", 0)();
+            auto javaVM = il2cpp_symbols::get_method_pointer<JavaVM *(*)()>(
+                    "UnityEngine.AndroidJNIModule.dll", "UnityEngine", "AndroidJNI", "GetJavaVM",
+                    0)();
 
-            JNIEnv* env;
+            JNIEnv *env;
             jint res = javaVM->GetEnv(reinterpret_cast<void **>(&env), JNI_VERSION_1_6);
 
             if (res == JNI_OK) {
-                auto il2cppActivity = il2cpp_symbols::get_method_pointer<Il2CppObject* (*)()>("UnityEngine.AndroidJNIModule.dll", "UnityEngine.Android", "AndroidApp", "get_Activity", 0)();
-                auto activity = il2cpp_symbols::get_method_pointer<jobject (*)(Il2CppObject*)>(il2cppActivity->klass, "GetRawObject", 0)(il2cppActivity);
+                auto il2cppActivity = il2cpp_symbols::get_method_pointer<Il2CppObject *(*)()>(
+                        "UnityEngine.AndroidJNIModule.dll", "UnityEngine.Android", "AndroidApp",
+                        "get_Activity", 0)();
+                auto activity = il2cpp_symbols::get_method_pointer<jobject (*)(Il2CppObject *)>(
+                        il2cppActivity->klass, "GetRawObject", 0)(il2cppActivity);
 
                 jclass activityClass = env->GetObjectClass(activity);
-                jmethodID getWindowManagerMethod = env->GetMethodID(activityClass, "getWindowManager", "()Landroid/view/WindowManager;");
+                jmethodID getWindowManagerMethod = env->GetMethodID(activityClass,
+                                                                    "getWindowManager",
+                                                                    "()Landroid/view/WindowManager;");
                 jobject windowManager = env->CallObjectMethod(activity, getWindowManagerMethod);
 
                 jclass windowManagerClass = env->GetObjectClass(windowManager);
-                jmethodID getCurrentWindowMetricsMethod = env->GetMethodID(windowManagerClass, "getCurrentWindowMetrics", "()Landroid/view/WindowMetrics;");
+                jmethodID getCurrentWindowMetricsMethod = env->GetMethodID(windowManagerClass,
+                                                                           "getCurrentWindowMetrics",
+                                                                           "()Landroid/view/WindowMetrics;");
 
                 auto metrics = env->CallObjectMethod(windowManager, getCurrentWindowMetricsMethod);
 
                 auto metricsClass = env->GetObjectClass(metrics);
 
-                auto getRectId = env->GetMethodID(metricsClass, "getBounds", "()Landroid/graphics/Rect;");
+                auto getRectId = env->GetMethodID(metricsClass, "getBounds",
+                                                  "()Landroid/graphics/Rect;");
                 auto rect = env->CallObjectMethod(metrics, getRectId);
 
                 auto rectClass = env->GetObjectClass(rect);
@@ -1469,10 +1481,15 @@ namespace {
                 ResizeWindow(width, height);
 
                 jclass activityInfoClass = env->FindClass("android/content/pm/ActivityInfo");
-                jfieldID SCREEN_ORIENTATION_FieldID = env->GetStaticFieldID(activityInfoClass, "SCREEN_ORIENTATION_FULL_USER", "I");
-                jint SCREEN_ORIENTATION = env->GetStaticIntField(activityInfoClass, SCREEN_ORIENTATION_FieldID);
+                jfieldID SCREEN_ORIENTATION_FieldID = env->GetStaticFieldID(activityInfoClass,
+                                                                            "SCREEN_ORIENTATION_FULL_USER",
+                                                                            "I");
+                jint SCREEN_ORIENTATION = env->GetStaticIntField(activityInfoClass,
+                                                                 SCREEN_ORIENTATION_FieldID);
 
-                jmethodID setRequestedOrientation = env->GetMethodID(activityClass, "setRequestedOrientation", "(I)V");
+                jmethodID setRequestedOrientation = env->GetMethodID(activityClass,
+                                                                     "setRequestedOrientation",
+                                                                     "(I)V");
 
                 env->CallVoidMethod(activity, setRequestedOrientation, SCREEN_ORIENTATION);
 
@@ -1751,8 +1768,9 @@ HOOK_DEF(void*, do_dlopen_V24, const char *name, int flags, const void *extinfo 
 
 HOOK_DEF(void*, NativeBridgeLoadLibrary_V21, const char *filename, int flag) {
     if (string(filename).find(string("libmain.so")) != string::npos) {
-        auto *NativeBridgeError = reinterpret_cast<bool (*)()>(DobbySymbolResolver(nullptr,
-                                                                                   "_ZN7android17NativeBridgeErrorEv"));
+        auto nativeBridge = dlopen("libnativebridge.so", RTLD_NOW);
+        auto *NativeBridgeError = reinterpret_cast<bool (*)()>(dlsym(nativeBridge,
+                                                                     "_ZN7android17NativeBridgeErrorEv"));
 
         stringstream path_armV8;
         path_armV8 << "/data/data/" << Game::GetCurrentPackageName().data() << "/arm64-v8a.so";
@@ -1786,10 +1804,11 @@ HOOK_DEF(void*, NativeBridgeLoadLibrary_V21, const char *filename, int flag) {
 HOOK_DEF(void*, NativeBridgeLoadLibraryExt_V26, const char *filename, int flag,
          struct native_bridge_namespace_t *ns) {
     if (string(filename).find(string("libmain.so")) != string::npos) {
-        auto *NativeBridgeError = reinterpret_cast<bool (*)()>(DobbySymbolResolver(nullptr,
-                                                                                   "_ZN7android17NativeBridgeErrorEv"));
-        auto *NativeBridgeGetError = reinterpret_cast<char *(*)()>(DobbySymbolResolver(nullptr,
-                                                                                       "_ZN7android20NativeBridgeGetErrorEv"));
+        auto nativeBridge = dlopen("libnativebridge.so", RTLD_NOW);
+        auto *NativeBridgeError = reinterpret_cast<bool (*)()>(dlsym(nativeBridge,
+                                                                     "_ZN7android17NativeBridgeErrorEv"));
+        auto *NativeBridgeGetError = reinterpret_cast<char *(*)()>(dlsym(nativeBridge,
+                                                                         "_ZN7android20NativeBridgeGetErrorEv"));
 
         stringstream path_armV8;
         path_armV8 << "/data/data/" << Game::GetCurrentPackageName().data() << "/arm64-v8a.so";
@@ -1805,18 +1824,15 @@ HOOK_DEF(void*, NativeBridgeLoadLibraryExt_V26, const char *filename, int flag,
         }
 
         if (!path.empty()) {
-            thread load_thread([path, ns, NativeBridgeError, NativeBridgeGetError]() {
-                void *lib = orig_NativeBridgeLoadLibraryExt_V26(path.data(), RTLD_NOW, ns);
-                LOGI("%s: %p", path.data(), lib);
-                if (NativeBridgeError()) {
-                    char *error_bridge = NativeBridgeGetError();
-                    if (error_bridge) {
-                        LOGW("error_bridge: %s", error_bridge);
-                    }
+            void *lib = orig_NativeBridgeLoadLibraryExt_V26(path.data(), RTLD_NOW, ns);
+            LOGI("%s: %p", path.data(), lib);
+            if (NativeBridgeError()) {
+                char *error_bridge = NativeBridgeGetError();
+                if (error_bridge) {
+                    LOGW("error_bridge: %s", error_bridge);
                 }
-                DobbyDestroy(addr_NativeBridgeLoadLibraryExt_V26);
-            });
-            load_thread.detach();
+            }
+            DobbyDestroy(addr_NativeBridgeLoadLibraryExt_V26);
         }
     }
 
@@ -1825,11 +1841,13 @@ HOOK_DEF(void*, NativeBridgeLoadLibraryExt_V26, const char *filename, int flag,
 
 HOOK_DEF(void*, NativeBridgeLoadLibraryExt_V30, const char *filename, int flag,
          struct native_bridge_namespace_t *ns) {
+    LOGD("NativeBridgeLoadLibraryExt_V30: %s", filename);
     if (string(filename).find(string("libmain.so")) != string::npos) {
-        auto *NativeBridgeError = reinterpret_cast<bool (*)()>(DobbySymbolResolver(nullptr,
-                                                                                   "NativeBridgeError"));
-        auto *NativeBridgeGetError = reinterpret_cast<char *(*)()>(DobbySymbolResolver(nullptr,
-                                                                                       "NativeBridgeGetError"));
+        auto nativeBridge = dlopen("libnativebridge.so", RTLD_NOW);
+        auto *NativeBridgeError = reinterpret_cast<bool (*)()>(dlsym(nativeBridge,
+                                                                     "NativeBridgeError"));
+        auto *NativeBridgeGetError = reinterpret_cast<char *(*)()>(dlsym(nativeBridge,
+                                                                         "NativeBridgeGetError"));
 
         stringstream path_armV8;
         path_armV8 << "/data/data/" << Game::GetCurrentPackageName().data() << "/arm64-v8a.so";
@@ -1845,19 +1863,13 @@ HOOK_DEF(void*, NativeBridgeLoadLibraryExt_V30, const char *filename, int flag,
         }
 
         if (!path.empty()) {
-            thread load_thread([path, ns, NativeBridgeError, NativeBridgeGetError]() {
-                void *lib = orig_NativeBridgeLoadLibraryExt_V30(path.data(), RTLD_NOW, ns);
-                LOGI("%s: %p", path.data(), lib);
-                if (NativeBridgeError()) {
-                    char *error_bridge = NativeBridgeGetError();
-                    if ((error_bridge) !=
-                        nullptr) {
-                        LOGW("error_bridge: %s", error_bridge);
-                    }
+            void *lib = orig_NativeBridgeLoadLibraryExt_V30(path.data(), RTLD_NOW, ns);
+            if (NativeBridgeError()) {
+                if (auto error_bridge = NativeBridgeGetError()) {
+                    LOGW("error_bridge: %s", error_bridge);
                 }
-                DobbyDestroy(addr_NativeBridgeLoadLibraryExt_V30);
-            });
-            load_thread.detach();
+            }
+            DobbyDestroy(addr_NativeBridgeLoadLibraryExt_V30);
         }
     }
 
@@ -2159,13 +2171,18 @@ void hack_thread(void *arg [[maybe_unused]]) {
     void *addr = nullptr;
     if (IsRunningOnNativeBridge()) {
         addr = reinterpret_cast<void *>(dlopen);
-    } else {
-        addr = DobbySymbolResolver(nullptr, "__dl__Z9do_dlopenPKciPK17android_dlextinfoPKv");
+    } else if (!IsABIRequiredNativeBridge()) {
+        if (ABI == "x86"s) {
+            addr = reinterpret_cast<void *>(dlopen);
+        } else {
+            addr = dlsym(dlopen("libdl.so", RTLD_NOW),
+                         "__dl__Z9do_dlopenPKciPK17android_dlextinfoPKv");
+        }
     }
 
     if (addr) {
         LOGI("%s do_dlopen at: %p", ABI, addr);
-        if (IsRunningOnNativeBridge()) {
+        if (IsRunningOnNativeBridge() || ABI == "x86"s) {
             addr_do_dlopen = addr;
             DobbyHook(addr_do_dlopen, reinterpret_cast<void *>(new_do_dlopen),
                       reinterpret_cast<void **>(&orig_do_dlopen));
@@ -2178,9 +2195,8 @@ void hack_thread(void *arg [[maybe_unused]]) {
 
     if (IsABIRequiredNativeBridge()) {
         if (api_level >= 30) {
-            addr_NativeBridgeLoadLibraryExt_V30 = GetNativeBridgeLoadLibrary(
-                    DobbySymbolResolver(nullptr,
-                                        "NativeBridgeLoadLibraryExt"));
+            addr_NativeBridgeLoadLibraryExt_V30 = dlsym(dlopen("libnativebridge.so", RTLD_NOW),
+                                                        "NativeBridgeLoadLibraryExt");
             if (addr_NativeBridgeLoadLibraryExt_V30) {
                 LOGI("NativeBridgeLoadLibraryExt at: %p", addr_NativeBridgeLoadLibraryExt_V30);
                 DobbyHook(addr_NativeBridgeLoadLibraryExt_V30,
@@ -2188,29 +2204,17 @@ void hack_thread(void *arg [[maybe_unused]]) {
                           reinterpret_cast<void **>(&orig_NativeBridgeLoadLibraryExt_V30));
             }
         } else if (api_level >= 26) {
-            addr_NativeBridgeLoadLibraryExt_V26 = GetNativeBridgeLoadLibrary(
-                    DobbySymbolResolver(nullptr,
-                                        "_ZN7android26NativeBridgeLoadLibraryExtEPKciPNS_25native_bridge_namespace_tE"));
+            addr_NativeBridgeLoadLibraryExt_V26 = dlsym(dlopen("libnativebridge.so", RTLD_NOW),
+                                                        "_ZN7android26NativeBridgeLoadLibraryExtEPKciPNS_25native_bridge_namespace_tE");
             if (addr_NativeBridgeLoadLibraryExt_V26) {
                 LOGI("NativeBridgeLoadLibraryExt at: %p", addr_NativeBridgeLoadLibraryExt_V26);
                 DobbyHook(addr_NativeBridgeLoadLibraryExt_V26,
                           reinterpret_cast<void *>(new_NativeBridgeLoadLibraryExt_V26),
                           reinterpret_cast<void **>(&orig_NativeBridgeLoadLibraryExt_V26));
             }
-        } else if (api_level >= 24) {
-            addr_NativeBridgeLoadLibrary_V21 = GetNativeBridgeLoadLibrary(
-                    DobbySymbolResolver(nullptr,
-                                        "_ZN7android23NativeBridgeLoadLibraryEPKci"));
-            if (addr_NativeBridgeLoadLibrary_V21) {
-                LOGI("NativeBridgeLoadLibrary at: %p", addr_NativeBridgeLoadLibrary_V21);
-                DobbyHook(addr_NativeBridgeLoadLibrary_V21,
-                          reinterpret_cast<void *>(new_NativeBridgeLoadLibrary_V21),
-                          reinterpret_cast<void **>(&orig_NativeBridgeLoadLibrary_V21));
-            }
         } else {
-            addr_NativeBridgeLoadLibrary_V21 = GetNativeBridgeLoadLibrary(
-                    DobbySymbolResolver(nullptr,
-                                        "_ZN7android23NativeBridgeLoadLibraryEPKci"));
+            addr_NativeBridgeLoadLibrary_V21 = dlsym(dlopen("libnativebridge.so", RTLD_NOW),
+                                                     "_ZN7android23NativeBridgeLoadLibraryEPKci");
             if (addr_NativeBridgeLoadLibrary_V21) {
                 LOGI("NativeBridgeLoadLibrary at: %p", addr_NativeBridgeLoadLibrary_V21);
                 DobbyHook(addr_NativeBridgeLoadLibrary_V21,

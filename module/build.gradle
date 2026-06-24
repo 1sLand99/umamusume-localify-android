@@ -122,8 +122,8 @@ androidComponents {
                         eol: FixCrLfFilter.CrLf.newInstance("lf"))
             }
 
-            from("${layout.buildDirectory.asFile.get()}/intermediates/stripped_native_libs/$variantLowered/strip${variantLowered}DebugSymbols/out/lib") {
-                exclude "libdobby.so"
+            from("${layout.buildDirectory.asFile.get()}/intermediates/stripped_native_libs/$variantLowered/strip${variantCapped}DebugSymbols/out/lib") {
+                exclude "**/libdobby.so"
                 into 'lib'
             }
 

@@ -204,6 +204,7 @@ void hook() __attribute__((constructor));
 
 void hook() {
     if (IsRunningOnNativeBridge()) {
+        LOGD("Starting on NativeBridge...");
         Game::CurrentGameRegion = Game::CheckPackageNameByDataPath();
         if (Game::CurrentGameRegion == Game::Region::UNKNOWN) {
             LOGW("Region UNKNOWN...");
