@@ -274,7 +274,7 @@ static void Gallop_WebViewManager_cctor_hook()
 	Il2CppObject* WebViewUrlDict;
 	il2cpp_field_static_get_value(WebViewUrlDictField, &WebViewUrlDict);
 
-	auto WebViewUrlDict_Add = il2cpp_symbols::get_method<void (*)(Il2CppObject*, Gallop::WebViewDefine::Url, Il2CppObject*, const MethodInfo*)>(WebViewUrlDict->klass, "Add", 2);
+	auto WebViewUrlDict_Add = il2cpp_symbols::get_method_type<void (*)(Il2CppObject*, Gallop::WebViewDefine::Url, Il2CppObject*, const MethodInfo*)>(WebViewUrlDict->klass, "Add", 2);
 	auto WebViewUrlDict_Add_methodPointer = il2cpp_symbols::get_method_pointer(WebViewUrlDict_Add);
 
 	auto methodInfo = reinterpret_cast<const MethodInfo*>(WebViewUrlDict_Add);

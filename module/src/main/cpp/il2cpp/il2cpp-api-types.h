@@ -179,6 +179,9 @@ typedef uint16_t Il2CppChar;
 #endif
 
 using il2cppstring = std::basic_string<Il2CppChar, std::char_traits<Il2CppChar>, std::allocator<Il2CppChar>>;
+using il2cppstringstream = std::basic_stringstream<Il2CppChar, std::char_traits<Il2CppChar>, std::allocator<Il2CppChar>>;
+using il2cppistream = std::basic_istream<Il2CppChar, std::char_traits<Il2CppChar>>;
+using il2cppifstream = std::basic_ifstream<Il2CppChar, std::char_traits<Il2CppChar>>;
 
 #if _MSC_VER
 typedef wchar_t Il2CppNativeChar;

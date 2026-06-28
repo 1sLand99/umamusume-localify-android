@@ -3,6 +3,7 @@
 #include <fcntl.h>
 
 #include <sys/mman.h>
+
 #include <unistd.h>
 
 #include "stdinclude.hpp"
@@ -13,13 +14,13 @@
 #include "hook.h"
 #include "zygisk.hpp"
 
-#include "lsplant.hpp"
-
 #include "elf_image.h"
 
-#include "zygoteloader/serializer.h"
+#include "lsplant.hpp"
+
 #include "zygoteloader/dex.hpp"
-#include "zygoteloader/main.h"
+#include "zygoteloader/serializer.h"
+#include "zygoteloader/zygoteloader.h"
 
 #define _u_int_val(p)               reinterpret_cast<uintptr_t>(p)
 #define _ptr(p)                   (reinterpret_cast<void *>(p))
@@ -128,27 +129,34 @@ public:
 
     void postAppSpecialize(const AppSpecializeArgs *) override {
         if (enable_hack) {
-            ElfImage art("libart.so");
-            const lsplant::InitInfo initInfo{
-                    .inline_hooker = InlineHooker,
-                    .inline_unhooker = InlineUnhooker,
-                    .art_symbol_resolver = [&art](std::string_view symbol) -> void * {
-                        return art.getSymbAddress(symbol);
-                    },
-                    .art_symbol_prefix_resolver = [&art](auto symbol) {
-                        return art.getSymbPrefixFirstAddress(symbol);
-                    },
-            };
-            if (lsplant::Init(env, initInfo) && classesDex != nullptr) {
-                dex_load_and_invoke(
-                        env,
-                        classesDex->base, classesDex->length
-                );
+            if (!IsABIRequiredNativeBridge())
+            {
+                ElfImage art("libart.so");
+                const lsplant::InitInfo initInfo{
+                        .inline_hooker = InlineHooker,
+                        .inline_unhooker = InlineUnhooker,
+                        .art_symbol_resolver = [&art](std::string_view symbol) -> void * {
+                            return art.getSymbAddress(symbol);
+                        },
+                        .art_symbol_prefix_resolver = [&art](auto symbol) {
+                            return art.getSymbPrefixFirstAddress(symbol);
+                        },
+                };
+                if (lsplant::Init(env, initInfo) && classesDex != nullptr) {
+                    dex_load_and_invoke(
+                            env,
+                            classesDex->base, classesDex->length
+                    );
+                }
             }
 
             int ret;
             pthread_t t;
-            ret = pthread_create(&t, nullptr, reinterpret_cast<void *(*)(void *)>(hack_thread), classesDex);
+
+            HookArgs* args = reinterpret_cast<HookArgs*>(malloc(sizeof(HookArgs)));
+            args->env = env;
+            args->classesDex = classesDex;
+            ret = pthread_create(&t, nullptr, reinterpret_cast<void *(*)(void *)>(hack_thread), args);
             if (ret != 0) {
                 LOGE("can't create thread: %s\n", strerror(ret));
             }
@@ -199,10 +207,8 @@ REGISTER_ZYGISK_MODULE(Module)
 REGISTER_ZYGISK_COMPANION(handleFileRequest)
 
 extern "C" {
-[[gnu::visibility("default")]] [[gnu::used]]
-void hook() __attribute__((constructor));
-
-void hook() {
+[[gnu::visibility("default"), maybe_unused]]
+void hook(JNIEnv *env, Resource *classesDex) {
     if (IsRunningOnNativeBridge()) {
         LOGD("Starting on NativeBridge...");
         Game::CurrentGameRegion = Game::CheckPackageNameByDataPath();
@@ -210,10 +216,33 @@ void hook() {
             LOGW("Region UNKNOWN...");
             return;
         }
+
+        ElfImage art("libart.so");
+        const lsplant::InitInfo initInfo{
+                .inline_hooker = InlineHooker,
+                .inline_unhooker = InlineUnhooker,
+                .art_symbol_resolver = [&art](std::string_view symbol) -> void * {
+                    return art.getSymbAddress(symbol);
+                },
+                .art_symbol_prefix_resolver = [&art](auto symbol) {
+                    return art.getSymbPrefixFirstAddress(symbol);
+                },
+        };
+        if (lsplant::Init(env, initInfo) && classesDex != nullptr) {
+            dex_load_and_invoke(
+                    env,
+                    classesDex->base, classesDex->length
+            );
+        }
+
         int ret;
         pthread_t t;
+
+        HookArgs* args = reinterpret_cast<HookArgs*>(malloc(sizeof(HookArgs)));
+        args->env = env;
+        args->classesDex = classesDex;
         ret = pthread_create(&t, nullptr,
-                             reinterpret_cast<void *(*)(void *)>(hack_thread), nullptr);
+                             reinterpret_cast<void *(*)(void *)>(hack_thread), args);
         if (ret != 0) {
             LOGE("can't create thread: %s\n", strerror(ret));
         }

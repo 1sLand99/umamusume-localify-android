@@ -200,7 +200,7 @@ namespace il2cpp_symbols
 		const char* klassName, const char* name, int argsCount);
 
 	template<typename T = Il2CppMethodPointer>
-	const MethodInfo_t<T>* get_method(const char* assemblyName, const char* namespaze,
+	const MethodInfo_t<T>* get_method_type(const char* assemblyName, const char* namespaze,
 		const char* klassName, const char* name, int argsCount)
 	{
 		return reinterpret_cast<const MethodInfo_t<T>*>(get_method(assemblyName, namespaze, klassName, name, argsCount));
@@ -209,9 +209,9 @@ namespace il2cpp_symbols
 	const MethodInfo* get_method(Il2CppClass* klass, const char* name, int argsCount);
 
 	template<typename T = Il2CppMethodPointer>
-	MethodInfo_t<T>* get_method(Il2CppClass* klass, const char* name, int argsCount)
+	const MethodInfo_t<T>* get_method_type(Il2CppClass* klass, const char* name, int argsCount)
 	{
-		return reinterpret_cast<MethodInfo_t<T>*>(get_method(klass, name, argsCount));
+		return reinterpret_cast<const MethodInfo_t<T>*>(get_method(klass, name, argsCount));
 	}
 
 	const Il2CppClass* find_class(const char* assemblyName, const char* namespaze,

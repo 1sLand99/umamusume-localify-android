@@ -14,6 +14,8 @@
 
 #include "log.h"
 
+#include "zygoteloader/zygoteloader.h"
+
 #include "logger/logger.hpp"
 #include "config.hpp"
 #include "native_bridge_itf.h"
@@ -50,6 +52,7 @@
 #include "scripts/umamusume/Gallop/RaceCameraManager.hpp"
 #include "scripts/umamusume/Gallop/Localize.hpp"
 #include "scripts/umamusume/Gallop/LowResolutionCameraUtil.hpp"
+#include "scripts/umamusume/Gallop/Live/Director.hpp"
 
 #include "scripts/Plugins/AnimateToUnity/AnRootManager.hpp"
 
@@ -57,6 +60,9 @@ using namespace std;
 using namespace logger;
 
 namespace {
+    JNIEnv *env;
+    Resource *classesDex;
+
     void patch_game_assembly();
 
     void init_il2cpp() {
@@ -74,11 +80,14 @@ namespace {
     void *il2cpp_init_orig = nullptr;
 
     static bool il2cpp_init_hook(const char *domain_name) {
+        LOGD("il2cpp_init_hook: %s", domain_name);
         const auto result = reinterpret_cast<decltype(il2cpp_init_hook) *>(il2cpp_init_orig)(
                 domain_name);
 
         auto unityVersion = il2cpp_resolve_icall_type<Il2CppString *(*)()>(
                 "UnityEngine.Application::get_unityVersion")();
+
+        LOGD("Unity version: %s", il2cpp_u8(unityVersion->chars).data());
 
         if (IL2CPP_BASIC_STRING(unityVersion->chars).contains(IL2CPP_STRING("2020"))) {
             Game::CurrentUnityVersion = Game::UnityVersion::Unity20;
@@ -88,9 +97,7 @@ namespace {
 
         if (result) {
             il2cpp_symbols::il2cpp_domain = il2cpp_domain_get();
-            if (Game::CurrentUnityVersion != Game::UnityVersion::Unity20) {
-                init_il2cpp();
-            }
+            init_il2cpp();
 
             DobbyDestroy(il2cpp_init_addr);
         }
@@ -1149,16 +1156,15 @@ namespace {
                                                            : Gallop::LowResolutionCameraUtil::DrawDirection::Landscape);
                     }
 
-                    auto director = GetSingletonInstance(
-                            il2cpp_symbols::get_class("umamusume.dll", "Gallop.Live", "Director"));
+                    auto director = Gallop::Live::Director::Instance();
                     if (director) {
                         il2cpp_symbols::get_method_pointer<void (*)(Il2CppObject *, int)>(
-                                director->klass, "SetupOrientation", 1)(director,
-                                                                        isPortrait
-                                                                        ? 2 : 1);
+                                director, "SetupOrientation", 1)(director,
+                                                                 isPortrait
+                                                                 ? 2 : 1);
 
                         auto ChampionsTextControllerField = il2cpp_class_get_field_from_name(
-                                director->klass, "ChampionsTextController");
+                                director, "ChampionsTextController");
                         Il2CppObject *ChampionsTextController;
                         il2cpp_field_get_value(director, ChampionsTextControllerField,
                                                &ChampionsTextController);
@@ -1216,7 +1222,7 @@ namespace {
 
 
                         auto liveFlashController = il2cpp_symbols::get_method_pointer<Il2CppObject *(*)(
-                                Il2CppObject *)>(director->klass, "get_LiveFlashController",
+                                Il2CppObject *)>(director, "get_LiveFlashController",
                                                  0)(director);
 
                         if (liveFlashController) {
@@ -1315,6 +1321,7 @@ namespace {
             auto sceneManager = Gallop::SceneManager::Instance();
 
             if (!sceneManager) {
+                StartTickFrame();
                 return;
             }
 
@@ -1323,20 +1330,14 @@ namespace {
             if (sceneName == IL2CPP_STRING("Live")) {
                 auto controller = Gallop::SceneManager::Instance().GetCurrentViewController();
 
-                if (controller) {
-                    LOGD("CONTROLLER: %s", controller->klass->name);
-                }
-
                 if (controller && controller->klass->name == "LiveViewController"s) {
-                    auto director = GetSingletonInstance(
-                            il2cpp_symbols::get_class("umamusume.dll", "Gallop.Live",
-                                                      "Director"));
+                    auto director = Gallop::Live::Director::Instance();
                     if (director) {
                         auto LiveCurrentTime = il2cpp_symbols::get_method_pointer<float (*)(
-                                Il2CppObject *)>(director->klass, "get_LiveCurrentTime",
+                                Il2CppObject *)>(director, "get_LiveCurrentTime",
                                                  0)(director);
                         auto LiveTotalTime = il2cpp_symbols::get_method_pointer<float (*)(
-                                Il2CppObject *)>(director->klass, "get_LiveTotalTime",
+                                Il2CppObject *)>(director, "get_LiveTotalTime",
                                                  0)(director);
 
                         auto sliderCommon = Localify::UIParts::GetOptionSlider(
@@ -1848,6 +1849,8 @@ HOOK_DEF(void*, NativeBridgeLoadLibraryExt_V30, const char *filename, int flag,
                                                                      "NativeBridgeError"));
         auto *NativeBridgeGetError = reinterpret_cast<char *(*)()>(dlsym(nativeBridge,
                                                                          "NativeBridgeGetError"));
+        auto *NativeBridgeGetTrampoline = reinterpret_cast<void *(*)(void* handle, const char* name, const char* shorty, uint32_t len)>(dlsym(nativeBridge,
+                                                                         "NativeBridgeGetTrampoline"));
 
         stringstream path_armV8;
         path_armV8 << "/data/data/" << Game::GetCurrentPackageName().data() << "/arm64-v8a.so";
@@ -1869,210 +1872,16 @@ HOOK_DEF(void*, NativeBridgeLoadLibraryExt_V30, const char *filename, int flag,
                     LOGW("error_bridge: %s", error_bridge);
                 }
             }
+
+            auto hook = reinterpret_cast<void (*)(JNIEnv*, Resource*)>(NativeBridgeGetTrampoline(lib, "hook", "VLL", 3));
+            hook(env, classesDex);
+
             DobbyDestroy(addr_NativeBridgeLoadLibraryExt_V30);
         }
     }
 
     return orig_NativeBridgeLoadLibraryExt_V30(filename, flag, ns);
 }
-
-//optional<vector<string>> read_config() {
-//    ifstream config_stream{
-//            string("/sdcard/Android/data/").append(Game::GetCurrentPackageName()).append(
-//                    "/config.json")};
-//    vector<string> dicts{};
-//
-//    if (!config_stream.is_open()) {
-//        LOGW("config.json not loaded.");
-//        return nullopt;
-//    }
-//
-//    LOGI("config.json loaded.");
-//
-//    rapidjson::IStreamWrapper wrapper{config_stream};
-//    rapidjson::Document document;
-//
-//    document.ParseStream(wrapper);
-//
-//    if (!document.HasParseError()) {
-//        if (document.HasMember("enableLogger")) {
-//            g_enable_logger = document["enableLogger"].GetBool();
-//        }
-//        if (document.HasMember("dumpStaticEntries")) {
-//            g_dump_entries = document["dumpStaticEntries"].GetBool();
-//        }
-//        if (document.HasMember("dumpDbEntries")) {
-//            g_dump_db_entries = document["dumpDbEntries"].GetBool();
-//        }
-//        if (document.HasMember("staticEntriesUseHash")) {
-//            g_static_entries_use_hash = document["staticEntriesUseHash"].GetBool();
-//        }
-//        if (document.HasMember("staticEntriesUseTextIdName")) {
-//            g_static_entries_use_text_id_name = document["staticEntriesUseTextIdName"].GetBool();
-//        }
-//        if (document.HasMember("maxFps")) {
-//            g_max_fps = document["maxFps"].GetInt();
-//        }
-//        if (document.HasMember("uiAnimationScale")) {
-//            g_ui_animation_scale = document["uiAnimationScale"].GetFloat();
-//        }
-//        if (document.HasMember("uiUseSystemResolution")) {
-//            g_ui_use_system_resolution = document["uiUseSystemResolution"].GetBool();
-//        }
-//        if (document.HasMember("resolution3dScale")) {
-//            g_resolution_3d_scale = document["resolution3dScale"].GetFloat();
-//        }
-//        if (document.HasMember("replaceFont")) {
-//            g_replace_to_builtin_font = document["replaceFont"].GetBool();
-//        }
-//        if (!document.HasMember("replaceFont") && document.HasMember("replaceToBuiltinFont")) {
-//            g_replace_to_builtin_font = document["replaceToBuiltinFont"].GetBool();
-//        }
-//        if (document.HasMember("replaceToCustomFont")) {
-//            g_replace_to_custom_font = document["replaceToCustomFont"].GetBool();
-//        }
-//        if (document.HasMember("fontAssetBundlePath")) {
-//            g_font_assetbundle_path = string(document["fontAssetBundlePath"].GetString());
-//        }
-//        if (document.HasMember("fontAssetName")) {
-//            g_font_asset_name = string(document["fontAssetName"].GetString());
-//        }
-//        if (document.HasMember("tmproFontAssetName")) {
-//            g_tmpro_font_asset_name = string(document["tmproFontAssetName"].GetString());
-//        }
-//        if (document.HasMember("graphicsQuality")) {
-//            g_graphics_quality = document["graphicsQuality"].GetInt();
-//            if (g_graphics_quality < -1) {
-//                g_graphics_quality = -1;
-//            }
-//            if (g_graphics_quality > 4) {
-//                g_graphics_quality = 3;
-//            }
-//        }
-//        if (document.HasMember("antiAliasing")) {
-//            g_anti_aliasing = document["antiAliasing"].GetInt();
-//            vector<int> options = {0, 2, 4, 8, -1};
-//            g_anti_aliasing =
-//                    options[find(options.begin(), options.end(), g_anti_aliasing) -
-//                            options.begin()];
-//        }
-//        if (document.HasMember("forceLandscape")) {
-//            g_force_landscape = document["forceLandscape"].GetBool();
-//        }
-//        if (document.HasMember("forceLandscapeUiScale")) {
-//            g_force_landscape_ui_scale = document["forceLandscapeUiScale"].GetFloat();
-//            if (g_force_landscape_ui_scale <= 0) {
-//                g_force_landscape_ui_scale = 1;
-//            }
-//        }
-//        if (document.HasMember("uiLoadingShowOrientationGuide")) {
-//            g_ui_loading_show_orientation_guide = document["uiLoadingShowOrientationGuide"].GetBool();
-//        }
-//        /*if (document.HasMember("restoreNotification")) {
-//            g_restore_notification = document["restoreNotification"].GetBool();
-//        }*/
-//        if (document.HasMember("replaceAssetsPath")) {
-//            auto replaceAssetsPath = localify::u8_u16(document["replaceAssetsPath"].GetString());
-//            if (!replaceAssetsPath.starts_with(u"/")) {
-//                replaceAssetsPath.insert(0, u16string(u"/sdcard/Android/data/").append(
-//                        localify::u8_u16(Game::GetCurrentPackageName())).append(u"/"));
-//            }
-//            if (filesystem::exists(replaceAssetsPath) &&
-//                filesystem::is_directory(replaceAssetsPath)) {
-//                for (auto &file: filesystem::directory_iterator(replaceAssetsPath)) {
-//                    if (file.is_regular_file()) {
-//                        g_replace_assets.emplace(file.path().filename().string(),
-//                                                 ReplaceAsset{file.path().string(), nullptr});
-//                    }
-//                }
-//            }
-//        }
-//
-//        if (document.HasMember("replaceAssetBundleFilePath")) {
-//            auto replaceAssetBundleFilePath = localify::u8_u16(
-//                    document["replaceAssetBundleFilePath"].GetString());
-//            if (!replaceAssetBundleFilePath.starts_with(u"/")) {
-//                replaceAssetBundleFilePath.insert(0, u16string(u"/sdcard/Android/data/").append(
-//                        localify::u8_u16(Game::GetCurrentPackageName())).append(u"/"));
-//            }
-//            if (filesystem::exists(replaceAssetBundleFilePath) &&
-//                filesystem::is_regular_file(replaceAssetBundleFilePath)) {
-//                g_replace_assetbundle_file_path = localify::u16_u8(replaceAssetBundleFilePath);
-//            }
-//        }
-//
-//        // Not working correctly...
-//        /*if (document.HasMember("replaceTextDBPath")) {
-//            auto replaceTextDBPath = localify::u8_u16(
-//                    document["replaceTextDBPath"].GetString());
-//            if (!replaceTextDBPath.starts_with(u"/")) {
-//                replaceTextDBPath.insert(0, u16string(u"/sdcard/Android/data/").append(
-//                        localify::u8_u16(Game::GetCurrentPackageName())).append(u"/"));
-//            }
-//            if (filesystem::exists(replaceTextDBPath) &&
-//                filesystem::is_regular_file(replaceTextDBPath)) {
-//                g_replace_text_db_path = localify::u16_u8(replaceTextDBPath);
-//            }
-//        }*/
-//
-//        if (document.HasMember("characterSystemTextCaption")) {
-//            g_character_system_text_caption = document["characterSystemTextCaption"].GetBool();
-//        }
-//
-//        if (document.HasMember("cySpringUpdateMode")) {
-//            g_cyspring_update_mode = document["cySpringUpdateMode"].GetInt();
-//            vector<int> options = {0, 1, 2, 3, -1};
-//            g_cyspring_update_mode =
-//                    options[find(options.begin(), options.end(), g_cyspring_update_mode) -
-//                            options.begin()];
-//        } else if (g_max_fps > 30) {
-//            g_cyspring_update_mode = 1;
-//        }
-//
-//        if (document.HasMember("hideNowLoading")) {
-//            g_hide_now_loading = document["hideNowLoading"].GetBool();
-//        }
-//
-//        if (document.HasMember("textIdDict")) {
-//            text_id_dict = document["textIdDict"].GetString();
-//        }
-//
-//        if (document.HasMember("dicts")) {
-//            auto &dicts_arr = document["dicts"];
-//            auto len = dicts_arr.Size();
-//
-//            for (size_t i = 0; i < len; ++i) {
-//                auto dict = dicts_arr[i].GetString();
-//
-//                dicts.emplace_back(dict);
-//            }
-//        }
-//
-//        if (document.HasMember("dumpMsgPack")) {
-//            g_dump_msgpack = document["dumpMsgPack"].GetBool();
-//        }
-//
-//        if (document.HasMember("dumpMsgPackRequest")) {
-//            g_dump_msgpack_request = document["dumpMsgPackRequest"].GetBool();
-//        }
-//
-//        if (document.HasMember("packetNotifier")) {
-//            g_packet_notifier = document["packetNotifier"].GetString();
-//        }
-//
-//        if (Game::CurrentGameRegion == Game::Region::KOR) {
-//            if (document.HasMember("restoreGallopWebview")) {
-//                g_restore_gallop_webview = document["restoreGallopWebview"].GetBool();
-//            }
-//            if (document.HasMember("useThirdPartyNews")) {
-//                g_use_third_party_news = document["useThirdPartyNews"].GetBool();
-//            }
-//        }
-//    }
-//
-//    config_stream.close();
-//    return dicts;
-//}
 
 void *GetNativeBridgeLoadLibrary(void *fallbackAddress) {
     void *handle = dlopen(GetNativeBridgeLibrary().data(), RTLD_NOW);
@@ -2103,7 +1912,7 @@ onConfigurationChanged_native(JNIEnv *env, jobject /*this*/, jobject activity, j
         return;
     }
 
-    if (!il2cpp_is_vm_thread(il2cpp_thread_current())) {
+    if (!il2cpp_is_vm_thread || !il2cpp_is_vm_thread(il2cpp_thread_current())) {
         return;
     }
 
@@ -2162,11 +1971,14 @@ onConfigurationChanged_native(JNIEnv *env, jobject /*this*/, jobject activity, j
                                                                                               fn));
 }
 
-void hack_thread(void *arg [[maybe_unused]]) {
+void hack_thread(HookArgs *args) {
     LOGI("%s hack thread: %d", ABI, gettid());
 
     const int api_level = GetAndroidApiLevel();
     LOGI("%s api level: %d", ABI, api_level);
+
+    env = args->env;
+    classesDex = args->classesDex;
 
     void *addr = nullptr;
     if (IsRunningOnNativeBridge()) {
@@ -2175,8 +1987,7 @@ void hack_thread(void *arg [[maybe_unused]]) {
         if (ABI == "x86"s) {
             addr = reinterpret_cast<void *>(dlopen);
         } else {
-            addr = dlsym(dlopen("libdl.so", RTLD_NOW),
-                         "__dl__Z9do_dlopenPKciPK17android_dlextinfoPKv");
+            addr = DobbySymbolResolver(nullptr, "__dl__Z9do_dlopenPKciPK17android_dlextinfoPKv");
         }
     }
 

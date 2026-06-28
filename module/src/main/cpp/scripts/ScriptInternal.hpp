@@ -2,6 +2,7 @@
 
 #ifdef _MSC_VER
 #define NOMINMAX
+#include <Windows.Foundation.Numerics.h>
 
 #include <MinHook.h>
 

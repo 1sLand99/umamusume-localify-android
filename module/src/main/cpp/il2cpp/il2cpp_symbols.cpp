@@ -384,7 +384,6 @@ namespace il2cpp_symbols
 	{
 		for (auto& init_callback : init_callbacks)
 		{
-			LOGD("init_callback: %p", &init_callback);
 			init_callback();
 		}
 	}

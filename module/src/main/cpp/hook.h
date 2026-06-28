@@ -1,6 +1,13 @@
 #pragma once
+#include <jni.h>
+#include "zygoteloader/zygoteloader.h"
 
-void hack_thread(void *arg);
+struct HookArgs {
+    JNIEnv *env;
+    Resource *classesDex;
+};
+
+void hack_thread(HookArgs *args);
 
 extern "C" void onConfigurationChanged_native(JNIEnv *env, jobject /*this*/, jobject activity, jobject newConfig);
 

@@ -14,6 +14,7 @@
 #include <wrl.h>
 #include <wil/com.h>
 #include <ShlObj.h>
+#include <Shlwapi.h>
 #include <WebView2EnvironmentOptions.h>
 #endif
 

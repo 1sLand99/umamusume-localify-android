@@ -7,8 +7,8 @@
 
 namespace
 {
-	void* UnityWebRequest_get_error_orig = nullptr;
 	Il2CppMethodPointer UnityWebRequest_get_error_addr = nullptr;
+	void* UnityWebRequest_get_error_orig = nullptr;
 }
 
 static Il2CppString* UnityWebRequest_get_error_hook(Il2CppObject* self)
