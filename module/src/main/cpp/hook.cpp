@@ -80,8 +80,9 @@ namespace {
     void *il2cpp_init_orig = nullptr;
 
     static bool il2cpp_init_hook(const char *domain_name) {
+        DobbyDestroy(il2cpp_init_addr);
         LOGD("il2cpp_init_hook: %s", domain_name);
-        const auto result = reinterpret_cast<decltype(il2cpp_init_hook) *>(il2cpp_init_orig)(
+        const auto result = reinterpret_cast<decltype(il2cpp_init_hook) *>(il2cpp_init_addr)(
                 domain_name);
 
         auto unityVersion = il2cpp_resolve_icall_type<Il2CppString *(*)()>(
@@ -99,7 +100,6 @@ namespace {
             il2cpp_symbols::il2cpp_domain = il2cpp_domain_get();
             init_il2cpp();
 
-            DobbyDestroy(il2cpp_init_addr);
         }
         return result;
     }
