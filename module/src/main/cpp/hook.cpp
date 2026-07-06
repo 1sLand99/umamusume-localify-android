@@ -150,8 +150,8 @@ namespace {
                 il2cpp_field_set_value(bgManager, _currentBgHeightField, &_currentBgHeight);
 
                 il2cpp_symbols::get_method_pointer<void (*)(Il2CppObject *)>(bgManager->klass,
-                                                                             "RecalcBgSize",
-                                                                             0)(bgManager);
+                                                                             "RecalcBgSize", 0)(
+                        bgManager);
             }
         }
     }
@@ -172,20 +172,17 @@ namespace {
 
                     if (state > 0) {
                         auto DirectorUI = il2cpp_symbols::get_method_pointer<Il2CppObject *(*)(
-                                Il2CppObject *)>(obj->klass, "get_DirectorUI", 0)(
-                                obj);
+                                Il2CppObject *)>(obj->klass, "get_DirectorUI", 0)(obj);
                         auto cameraController = il2cpp_symbols::get_method_pointer<Il2CppObject *(*)(
-                                Il2CppObject *)>(obj->klass, "get_CameraController",
-                                                 0)(obj);
+                                Il2CppObject *)>(obj->klass, "get_CameraController", 0)(obj);
 
                         if (DirectorUI && cameraController) {
                             il2cpp_symbols::get_method_pointer<void (*)(Il2CppObject *)>(
-                                    DirectorUI->klass, "ResetTextureSize", 0)(
-                                    DirectorUI);
+                                    DirectorUI->klass, "ResetTextureSize", 0)(DirectorUI);
 
                             auto TextureResolution = il2cpp_symbols::get_method_pointer<UnityEngine::Vector2Int(*)(
-                                    Il2CppObject *)>(DirectorUI->klass, "get_TextureResolution",
-                                                     0)(DirectorUI);
+                                    Il2CppObject *)>(DirectorUI->klass, "get_TextureResolution", 0)(
+                                    DirectorUI);
 
                             auto _cameraField = il2cpp_class_get_field_from_name(
                                     cameraController->klass, "_camera");
@@ -195,8 +192,8 @@ namespace {
                             if (_camera) {
                                 il2cpp_symbols::get_method_pointer<void (*)(Il2CppObject *,
                                                                             UnityEngine::Vector2Int)>(
-                                        cameraController->klass, "ResizeRenderTexture",
-                                        1)(cameraController, TextureResolution);
+                                        cameraController->klass, "ResizeRenderTexture", 1)(
+                                        cameraController, TextureResolution);
 
                                 auto _renderTextureField = il2cpp_class_get_field_from_name(
                                         cameraController->klass, "_renderTexture");
@@ -206,8 +203,8 @@ namespace {
 
                                 il2cpp_symbols::get_method_pointer<void (*)(Il2CppObject *,
                                                                             Il2CppObject *)>(
-                                        DirectorUI->klass, "SetRenderTexture", 1)(
-                                        DirectorUI, _renderTexture);
+                                        DirectorUI->klass, "SetRenderTexture", 1)(DirectorUI,
+                                                                                  _renderTexture);
                             }
                         }
                     }
@@ -242,9 +239,8 @@ namespace {
                     auto buffer = il2cpp_symbols::get_method_pointer<Il2CppObject *(*)(
                             Il2CppObject *)>(obj->klass, "get_FrameBuffer", 0)(obj);
                     if (buffer) {
-                        if (il2cpp_symbols::get_method_pointer<Il2CppObject *(*)(
-                                Il2CppObject *)>(buffer->klass, "get_ColorBuffer",
-                                                 0)(buffer)) {
+                        if (il2cpp_symbols::get_method_pointer<Il2CppObject *(*)(Il2CppObject *)>(
+                                buffer->klass, "get_ColorBuffer", 0)(buffer)) {
                             il2cpp_symbols::get_method_pointer<void (*)(Il2CppObject *)>(
                                     buffer->klass, "RemakeRenderTexture", 0)(buffer);
                         }
@@ -269,12 +265,10 @@ namespace {
                     il2cpp_field_get_value(obj, _frameBufferField, &_frameBuffer);
 
                     if (_frameBuffer) {
-                        if (il2cpp_symbols::get_method_pointer<Il2CppObject *(*)(
-                                Il2CppObject *)>(_frameBuffer->klass, "get_ColorBuffer",
-                                                 0)(_frameBuffer)) {
+                        if (il2cpp_symbols::get_method_pointer<Il2CppObject *(*)(Il2CppObject *)>(
+                                _frameBuffer->klass, "get_ColorBuffer", 0)(_frameBuffer)) {
                             il2cpp_symbols::get_method_pointer<void (*)(Il2CppObject *)>(
-                                    _frameBuffer->klass, "RemakeRenderTexture", 0)(
-                                    _frameBuffer);
+                                    _frameBuffer->klass, "RemakeRenderTexture", 0)(_frameBuffer);
                         }
                     }
                 }
@@ -308,11 +302,9 @@ namespace {
 
 
                             if (il2cpp_symbols::get_method_pointer<Il2CppObject *(*)(
-                                    Il2CppObject *)>(buffer->klass, "get_ColorBuffer",
-                                                     0)(buffer)) {
+                                    Il2CppObject *)>(buffer->klass, "get_ColorBuffer", 0)(buffer)) {
                                 il2cpp_symbols::get_method_pointer<void (*)(Il2CppObject *)>(
-                                        buffer->klass, "RemakeRenderTexture", 0)(
-                                        buffer);
+                                        buffer->klass, "RemakeRenderTexture", 0)(buffer);
                             }
                         }
                     } else {
@@ -378,11 +370,9 @@ namespace {
 
                     if (_scene) {
                         auto camera = il2cpp_symbols::get_method_pointer<Il2CppObject *(*)(
-                                Il2CppObject *)>(_scene->klass, "GetCamera", 0)(
-                                _scene);
+                                Il2CppObject *)>(_scene->klass, "GetCamera", 0)(_scene);
                         auto texture = il2cpp_symbols::get_method_pointer<Il2CppObject *(*)(
-                                Il2CppObject *)>(camera->klass, "get_RenderTexture",
-                                                 0)(camera);
+                                Il2CppObject *)>(camera->klass, "get_RenderTexture", 0)(camera);
 
                         auto _formationAllField = il2cpp_class_get_field_from_name(obj->klass,
                                                                                    "_formationAll");
@@ -392,8 +382,8 @@ namespace {
                         if (_formationAll) {
                             il2cpp_symbols::get_method_pointer<void (*)(Il2CppObject *,
                                                                         Il2CppObject *)>(
-                                    _formationAll->klass, "SetRenderTex", 1)(
-                                    _formationAll, texture);
+                                    _formationAll->klass, "SetRenderTex", 1)(_formationAll,
+                                                                             texture);
                         }
 
                         auto _formationMainField = il2cpp_class_get_field_from_name(obj->klass,
@@ -404,8 +394,8 @@ namespace {
                         if (_formationMain) {
                             il2cpp_symbols::get_method_pointer<void (*)(Il2CppObject *,
                                                                         Il2CppObject *)>(
-                                    _formationMain->klass, "SetRenderTex", 1)(
-                                    _formationMain, texture);
+                                    _formationMain->klass, "SetRenderTex", 1)(_formationMain,
+                                                                              texture);
                         }
 
                         // TODO: reposition
@@ -450,8 +440,8 @@ namespace {
         if (controller) {
             if (controller->klass->name == "SingleModeMainViewController"s) {
                 auto ScenarioController = il2cpp_symbols::get_method_pointer<Il2CppObject *(*)(
-                        Il2CppObject *)>(controller->klass, "get_ScenarioController",
-                                         0)(controller);
+                        Il2CppObject *)>(controller->klass, "get_ScenarioController", 0)(
+                        controller);
 
                 if (ScenarioController && ScenarioController->klass->name ==
                                           "SingleModeMainViewScenarioBreedersController"s) {
@@ -460,14 +450,13 @@ namespace {
 
                     if (!IsStoryActive) {
                         auto trainingController = il2cpp_symbols::get_method_pointer<Il2CppObject *(*)(
-                                Il2CppObject *)>(controller->klass, "get_TrainingController",
-                                                 0)(controller);
+                                Il2CppObject *)>(controller->klass, "get_TrainingController", 0)(
+                                controller);
                         if (!il2cpp_symbols::get_method_pointer<bool (*)(Il2CppObject *)>(
                                 trainingController->klass, "get_IsInTraining", 0)(
                                 trainingController)) {
                             il2cpp_symbols::get_method_pointer<void (*)(Il2CppObject *)>(
-                                    ScenarioController->klass, "PlayCutIn", 0)(
-                                    ScenarioController);
+                                    ScenarioController->klass, "PlayCutIn", 0)(ScenarioController);
                         }
                     }
                 }
@@ -490,8 +479,8 @@ namespace {
                     if (_lowResolutionCamera) {
                         il2cpp_symbols::get_method_pointer<void (*)(Il2CppObject *,
                                                                     Il2CppObject *)>(
-                                _photoStudioTopCharaViewer->klass, "OnCreateTexture",
-                                1)(_photoStudioTopCharaViewer, _lowResolutionCamera);
+                                _photoStudioTopCharaViewer->klass, "OnCreateTexture", 1)(
+                                _photoStudioTopCharaViewer, _lowResolutionCamera);
                     }
                 }
             }
@@ -509,12 +498,10 @@ namespace {
                     il2cpp_field_get_value(_fanRaidTopSequence, _frameBufferField, &_frameBuffer);
 
                     if (_frameBuffer) {
-                        if (il2cpp_symbols::get_method_pointer<Il2CppObject *(*)(
-                                Il2CppObject *)>(_frameBuffer->klass, "get_ColorBuffer",
-                                                 0)(_frameBuffer)) {
+                        if (il2cpp_symbols::get_method_pointer<Il2CppObject *(*)(Il2CppObject *)>(
+                                _frameBuffer->klass, "get_ColorBuffer", 0)(_frameBuffer)) {
                             il2cpp_symbols::get_method_pointer<void (*)(Il2CppObject *)>(
-                                    _frameBuffer->klass, "RemakeRenderTexture", 0)(
-                                    _frameBuffer);
+                                    _frameBuffer->klass, "RemakeRenderTexture", 0)(_frameBuffer);
                         }
                     }
                 }
@@ -533,12 +520,10 @@ namespace {
                     il2cpp_field_get_value(_context, FrameBufferField, &FrameBuffer);
 
                     if (FrameBuffer) {
-                        if (il2cpp_symbols::get_method_pointer<Il2CppObject *(*)(
-                                Il2CppObject *)>(FrameBuffer->klass, "get_ColorBuffer",
-                                                 0)(FrameBuffer)) {
+                        if (il2cpp_symbols::get_method_pointer<Il2CppObject *(*)(Il2CppObject *)>(
+                                FrameBuffer->klass, "get_ColorBuffer", 0)(FrameBuffer)) {
                             il2cpp_symbols::get_method_pointer<void (*)(Il2CppObject *)>(
-                                    FrameBuffer->klass, "RemakeRenderTexture", 0)(
-                                    FrameBuffer);
+                                    FrameBuffer->klass, "RemakeRenderTexture", 0)(FrameBuffer);
                         }
                     }
                 }
@@ -561,8 +546,8 @@ namespace {
                         auto texture = uiManager.UITexture();
                         il2cpp_symbols::get_method_pointer<void (*)(Il2CppObject *,
                                                                     Il2CppObject *)>(
-                                _resultCamera->klass, "set_targetTexture", 1)(
-                                _resultCamera, texture);
+                                _resultCamera->klass, "set_targetTexture", 1)(_resultCamera,
+                                                                              texture);
                     }
                 }
             }
@@ -575,11 +560,9 @@ namespace {
 
                 if (_frameBuffer) {
                     if (il2cpp_symbols::get_method_pointer<Il2CppObject *(*)(Il2CppObject *)>(
-                            _frameBuffer->klass, "get_ColorBuffer", 0)(
-                            _frameBuffer)) {
+                            _frameBuffer->klass, "get_ColorBuffer", 0)(_frameBuffer)) {
                         il2cpp_symbols::get_method_pointer<void (*)(Il2CppObject *)>(
-                                _frameBuffer->klass, "RemakeRenderTexture", 0)(
-                                _frameBuffer);
+                                _frameBuffer->klass, "RemakeRenderTexture", 0)(_frameBuffer);
                     }
                 }
             }
@@ -587,8 +570,7 @@ namespace {
             if (config::freeform_window) {
                 if (string(controller->klass->name).ends_with("LiveViewController")) {
                     auto view = il2cpp_symbols::get_method_pointer<Il2CppObject *(*)(
-                            Il2CppObject *)>(controller->klass, "GetViewBase", 0)(
-                            controller);
+                            Il2CppObject *)>(controller->klass, "GetViewBase", 0)(controller);
                     auto _fullPortraitRootField = il2cpp_class_get_field_from_name(view->klass,
                                                                                    "_fullPortraitRoot");
 
@@ -611,9 +593,8 @@ namespace {
                     "umamusume.dll", "Gallop", "StoryManager", "get_StorySceneController",
                     IgnoreNumberOfArguments)();
             if (storySceneController) {
-                auto DisplayMode = il2cpp_symbols::get_method_pointer<uint64_t(*)(
-                        Il2CppObject *)>(storySceneController->klass, "get_DisplayMode",
-                                         0)(storySceneController);
+                auto DisplayMode = il2cpp_symbols::get_method_pointer<uint64_t(*)(Il2CppObject *)>(
+                        storySceneController->klass, "get_DisplayMode", 0)(storySceneController);
 
                 Gallop::StoryViewController storyViewController = il2cpp_symbols::get_method_pointer<Il2CppObject *(*)(
                         Il2CppObject *)>("umamusume.dll", "Gallop", "StoryManager",
@@ -621,21 +602,20 @@ namespace {
 
                 auto IsSingleModeOrGallery = storyViewController.IsSingleModeOrGallery();
 
-                auto scene = il2cpp_symbols::get_method_pointer<Il2CppObject *(*)(
-                        Il2CppObject *)>(storySceneController->klass, "GetSceneBase",
-                                         0)(storySceneController);
+                auto scene = il2cpp_symbols::get_method_pointer<Il2CppObject *(*)(Il2CppObject *)>(
+                        storySceneController->klass, "GetSceneBase", 0)(storySceneController);
 
                 if (!IsSingleModeOrGallery) {
                     storyViewController.SetDisplayMode(DisplayMode);
                 } else {
                     if (DisplayMode == 1) {
                         il2cpp_symbols::get_method_pointer<void (*)(Il2CppObject *)>(
-                                storySceneController->klass, "SetDisplayAreaPortrait",
-                                0)(storySceneController);
+                                storySceneController->klass, "SetDisplayAreaPortrait", 0)(
+                                storySceneController);
                     } else {
                         il2cpp_symbols::get_method_pointer<void (*)(Il2CppObject *)>(
-                                storySceneController->klass, "SetDisplayAreaFullScreen",
-                                0)(storySceneController);
+                                storySceneController->klass, "SetDisplayAreaFullScreen", 0)(
+                                storySceneController);
                     }
 
                     uint64_t drawDirection = 6;
@@ -664,8 +644,8 @@ namespace {
                             if (lowResolutionCamera) {
                                 il2cpp_symbols::get_method_pointer<void (*)(Il2CppObject *,
                                                                             uint64_t)>(
-                                        lowResolutionCamera->klass, "ChangeDirection",
-                                        1)(lowResolutionCamera, drawDirection);
+                                        lowResolutionCamera->klass, "ChangeDirection", 1)(
+                                        lowResolutionCamera, drawDirection);
                             }
                         }
                     }
@@ -675,14 +655,14 @@ namespace {
                                        "GetDrawPass", 1)(DisplayMode);
 
                     auto FrameBuffer = il2cpp_symbols::get_method_pointer<Il2CppObject *(*)(
-                            Il2CppObject *)>(storySceneController->klass, "get_FrameBuffer",
-                                             0)(storySceneController);
+                            Il2CppObject *)>(storySceneController->klass, "get_FrameBuffer", 0)(
+                            storySceneController);
 
                     if (il2cpp_symbols::get_method_pointer<Il2CppObject *(*)(Il2CppObject *)>(
                             FrameBuffer->klass, "get_ColorBuffer", 0)(FrameBuffer)) {
                         il2cpp_symbols::get_method_pointer<void (*)(Il2CppObject *, uint64_t)>(
-                                FrameBuffer->klass, "RemakeRenderTexture", 1)(
-                                FrameBuffer, FrameBufferDisplayMode);
+                                FrameBuffer->klass, "RemakeRenderTexture", 1)(FrameBuffer,
+                                                                              FrameBufferDisplayMode);
                     }
 
                     // il2cpp_symbols::get_method_pointer<void (*)(Il2CppObject*, uint64_t)>(storySceneController->klass, "UpdateFovFactor", 1)(storySceneController, DisplayMode);
@@ -731,18 +711,17 @@ namespace {
 
                         if (player) {
                             auto gameObject = il2cpp_symbols::get_method_pointer<Il2CppObject *(*)(
-                                    Il2CppObject *)>(player->klass, "get_gameObject",
-                                                     0)(player);
+                                    Il2CppObject *)>(player->klass, "get_gameObject", 0)(player);
 
                             if (gameObject) {
                                 auto transform = il2cpp_symbols::get_method_pointer<Il2CppObject *(*)(
-                                        Il2CppObject *)>(gameObject->klass, "get_transform",
-                                                         0)(gameObject);
+                                        Il2CppObject *)>(gameObject->klass, "get_transform", 0)(
+                                        gameObject);
 
                                 if (transform) {
                                     auto parent = il2cpp_symbols::get_method_pointer<Il2CppObject *(*)(
-                                            Il2CppObject *)>(transform->klass, "get_parent",
-                                                             0)(transform);
+                                            Il2CppObject *)>(transform->klass, "get_parent", 0)(
+                                            transform);
 
                                     if (parent) {
                                         auto parentGameObject = il2cpp_symbols::get_method_pointer<Il2CppObject *(*)(
@@ -751,8 +730,7 @@ namespace {
                                         auto getComponents = il2cpp_symbols::get_method_pointer<Il2CppArraySize *(*)(
                                                 Il2CppObject *, Il2CppType *, bool, bool, bool,
                                                 bool, Il2CppObject *)>(parentGameObject->klass,
-                                                                       "GetComponentsInternal",
-                                                                       6);
+                                                                       "GetComponentsInternal", 6);
 
                                         if (UnityEngine::Object::Name(parent)->chars ==
                                             il2cppstring(IL2CPP_STRING("MainCanvas"))) {
@@ -779,10 +757,9 @@ namespace {
                                                         il2cpp_symbols::get_method_pointer<void (*)(
                                                                 Il2CppObject *, int)>(
                                                                 fullPlayer->klass,
-                                                                "AdjustMovieSize",
-                                                                1)(fullPlayer,
-                                                                   Gallop::Screen::IsVertical()
-                                                                   ? 0 : 1);
+                                                                "AdjustMovieSize", 1)(fullPlayer,
+                                                                                      Gallop::Screen::IsVertical()
+                                                                                      ? 0 : 1);
 
                                                         return;
                                                     }
@@ -840,8 +817,8 @@ namespace {
                                                             il2cpp_symbols::get_method_pointer<void (*)(
                                                                     Il2CppObject *)>(
                                                                     _moviePlayer->klass,
-                                                                    "AdjustScreenSize",
-                                                                    0)(_moviePlayer);
+                                                                    "AdjustScreenSize", 0)(
+                                                                    _moviePlayer);
 
                                                             il2cpp_field_static_set_value(
                                                                     CurrentDisplayModeField,
@@ -864,8 +841,7 @@ namespace {
                                             if (criPlayer) {
                                                 auto status = il2cpp_symbols::get_method_pointer<int (*)(
                                                         Il2CppObject *)>(criPlayer->klass,
-                                                                         "get_status",
-                                                                         0)(
+                                                                         "get_status", 0)(
                                                         criPlayer);
                                                 if (status == 5) {
                                                     Cute::Cri::MoviePlayerForUI(
@@ -882,12 +858,10 @@ namespace {
 
                                             if (array) {
                                                 for (int j = 0; j < array->max_length; j++) {
-                                                    auto obj =
-                                                            il2cpp_symbols::get_method_pointer<Il2CppObject *(*)(
-                                                                    Il2CppObject *, long index)>(
-                                                                    "mscorlib.dll", "System",
-                                                                    "Array", "GetValue", 1)(array,
-                                                                                            j);
+                                                    auto obj = il2cpp_symbols::get_method_pointer<Il2CppObject *(*)(
+                                                            Il2CppObject *, long index)>(
+                                                            "mscorlib.dll", "System", "Array",
+                                                            "GetValue", 1)(array, j);
                                                     if (!obj) continue;
 
                                                     auto newSize = il2cpp_symbols::get_method_pointer<UnityEngine::Vector2(*)(
@@ -897,20 +871,18 @@ namespace {
 
                                                     il2cpp_symbols::get_method_pointer<void (*)(
                                                             Il2CppObject *, UnityEngine::Vector2)>(
-                                                            parent->klass, "set_sizeDelta",
-                                                            1)(parent, newSize);
+                                                            parent->klass, "set_sizeDelta", 1)(
+                                                            parent, newSize);
 
                                                     auto criPlayer = il2cpp_symbols::get_method_pointer<Il2CppObject *(*)(
                                                             Il2CppObject *)>(player->klass,
-                                                                             "get_Player",
-                                                                             0)(
+                                                                             "get_Player", 0)(
                                                             player);
 
                                                     if (criPlayer) {
                                                         auto status = il2cpp_symbols::get_method_pointer<int (*)(
                                                                 Il2CppObject *)>(criPlayer->klass,
-                                                                                 "get_status",
-                                                                                 0)(
+                                                                                 "get_status", 0)(
                                                                 criPlayer);
                                                         if (status == 5) {
                                                             Cute::Cri::MoviePlayerForUI(
@@ -937,8 +909,7 @@ namespace {
             il2cpp_symbols::get_method_pointer<void (*)(Il2CppObject *, Il2CppDelegate *)>(
                     "umamusume.dll", "Gallop", "MonoBehaviourExtension", "WaitForEndFrame", 2)(
                     gameSystem, CreateDelegateStatic(fn));
-        }
-        catch (const Il2CppExceptionWrapper &ex) {
+        } catch (const Il2CppExceptionWrapper &ex) {
             LOGW("WaitForEndOfFrame error: %s", il2cpp_u8(ex.ex->message->chars).data());
             PrintStackTrace();
         }
@@ -951,8 +922,7 @@ namespace {
             il2cpp_symbols::get_method_pointer<void (*)(Il2CppObject *, Il2CppDelegate *)>(
                     "umamusume.dll", "Gallop", "MonoBehaviourExtension", "WaitForEndFrame", 2)(
                     gameSystem, delegate);
-        }
-        catch (const Il2CppExceptionWrapper &ex) {
+        } catch (const Il2CppExceptionWrapper &ex) {
             LOGW("WaitForEndOfFrame error: %s", il2cpp_u8(ex.ex->message->chars).data());
             PrintStackTrace();
         }
@@ -1005,8 +975,7 @@ namespace {
 
                 if (uiManager) {
                     il2cpp_symbols::get_method_pointer<void (*)(Il2CppObject *)>(
-                            tapEffectController->klass, "Disable", 0)(
-                            tapEffectController);
+                            tapEffectController->klass, "Disable", 0)(tapEffectController);
 
                     uiManager.SetCameraSizeByOrientation(UnityEngine::ScreenOrientation::Portrait);
                 }
@@ -1021,19 +990,16 @@ namespace {
                     auto gameObject = uiManager.gameObject();
 
                     auto transform = il2cpp_symbols::get_method_pointer<Il2CppObject *(*)(
-                            Il2CppObject *)>(gameObject, "get_transform", 0)(
-                            gameObject);
+                            Il2CppObject *)>(gameObject, "get_transform", 0)(gameObject);
 
                     il2cpp_symbols::get_method_pointer<void (*)(Il2CppObject *,
                                                                 UnityEngine::Vector3)>(
                             transform->klass, "set_localScale", 1)(transform,
-                                                                   UnityEngine::Vector3{
-                                                                           1, 1, 1});
+                                                                   UnityEngine::Vector3{1, 1, 1});
 
                     if (tapEffectController) {
                         il2cpp_symbols::get_method_pointer<void (*)(Il2CppObject *)>(
-                                tapEffectController->klass, "Enable", 0)(
-                                tapEffectController);
+                                tapEffectController->klass, "Enable", 0)(tapEffectController);
                     }
 
                     Il2CppArraySize_t<Il2CppObject *> *canvasScalerList;
@@ -1046,24 +1012,22 @@ namespace {
                         auto canvasScaler = canvasScalerList->vector[i];
                         if (canvasScaler) {
                             auto gameObject = il2cpp_symbols::get_method_pointer<Il2CppObject *(*)(
-                                    Il2CppObject *)>(canvasScaler->klass, "get_gameObject",
-                                                     0)(canvasScaler);
+                                    Il2CppObject *)>(canvasScaler->klass, "get_gameObject", 0)(
+                                    canvasScaler);
 
                             const auto keepActive = il2cpp_symbols::get_method_pointer<bool (*)(
-                                    Il2CppObject *)>(gameObject->klass, "get_activeSelf",
-                                                     0)(gameObject);
+                                    Il2CppObject *)>(gameObject->klass, "get_activeSelf", 0)(
+                                    gameObject);
 
                             il2cpp_symbols::get_method_pointer<void (*)(Il2CppObject *, bool)>(
-                                    gameObject->klass, "SetActive", 1)(gameObject,
-                                                                       true);
+                                    gameObject->klass, "SetActive", 1)(gameObject, true);
 
                             il2cpp_symbols::get_method_pointer<void (*)(Il2CppObject *, bool)>(
-                                    gameObject->klass, "SetActive", 1)(gameObject,
-                                                                       keepActive);
+                                    gameObject->klass, "SetActive", 1)(gameObject, keepActive);
 
                             auto scaleMode = il2cpp_symbols::get_method_pointer<int (*)(
-                                    Il2CppObject *)>(canvasScaler->klass, "get_uiScaleMode",
-                                                     0)(canvasScaler);
+                                    Il2CppObject *)>(canvasScaler->klass, "get_uiScaleMode", 0)(
+                                    canvasScaler);
 
                             if (scaleMode == 1) {
                                 if (isPortrait) {
@@ -1074,10 +1038,10 @@ namespace {
                                                            config::freeform_ui_scale_portrait);
                                     il2cpp_symbols::get_method_pointer<void (*)(Il2CppObject *,
                                                                                 UnityEngine::Vector2)>(
-                                            canvasScaler->klass, "set_referenceResolution",
-                                            1)(canvasScaler, UnityEngine::Vector2{
-                                            static_cast<float>(contentWidth / scale),
-                                            static_cast<float>(contentHeight / scale)});
+                                            canvasScaler->klass, "set_referenceResolution", 1)(
+                                            canvasScaler, UnityEngine::Vector2{
+                                                    static_cast<float>(contentWidth / scale),
+                                                    static_cast<float>(contentHeight / scale)});
                                 } else {
                                     const auto scale = min(config::freeform_ui_scale_landscape,
                                                            max(1.0f,
@@ -1086,10 +1050,10 @@ namespace {
                                                            config::freeform_ui_scale_landscape);
                                     il2cpp_symbols::get_method_pointer<void (*)(Il2CppObject *,
                                                                                 UnityEngine::Vector2)>(
-                                            canvasScaler->klass, "set_referenceResolution",
-                                            1)(canvasScaler, UnityEngine::Vector2{
-                                            static_cast<float>(contentWidth / scale),
-                                            static_cast<float>(contentHeight / scale)});
+                                            canvasScaler->klass, "set_referenceResolution", 1)(
+                                            canvasScaler, UnityEngine::Vector2{
+                                                    static_cast<float>(contentWidth / scale),
+                                                    static_cast<float>(contentHeight / scale)});
                                 }
                             }
 
@@ -1102,8 +1066,8 @@ namespace {
                                                            config::freeform_ui_scale_portrait);
                                     il2cpp_symbols::get_method_pointer<void (*)(Il2CppObject *,
                                                                                 float)>(
-                                            canvasScaler->klass, "set_scaleFactor",
-                                            1)(canvasScaler, scale);
+                                            canvasScaler->klass, "set_scaleFactor", 1)(canvasScaler,
+                                                                                       scale);
                                 } else {
                                     const auto scale = min(config::freeform_ui_scale_landscape,
                                                            max(1.0f,
@@ -1112,8 +1076,8 @@ namespace {
                                                            config::freeform_ui_scale_landscape);
                                     il2cpp_symbols::get_method_pointer<void (*)(Il2CppObject *,
                                                                                 float)>(
-                                            canvasScaler->klass, "set_scaleFactor",
-                                            1)(canvasScaler, scale);
+                                            canvasScaler->klass, "set_scaleFactor", 1)(canvasScaler,
+                                                                                       scale);
                                 }
                             }
                         }
@@ -1158,10 +1122,10 @@ namespace {
 
                     auto director = Gallop::Live::Director::Instance();
                     if (director) {
-                        il2cpp_symbols::get_method_pointer<void (*)(Il2CppObject *, int)>(
-                                director, "SetupOrientation", 1)(director,
-                                                                 isPortrait
-                                                                 ? 2 : 1);
+                        il2cpp_symbols::get_method_pointer<void (*)(Il2CppObject *, int)>(director,
+                                                                                          "SetupOrientation",
+                                                                                          1)(
+                                director, isPortrait ? 2 : 1);
 
                         auto ChampionsTextControllerField = il2cpp_class_get_field_from_name(
                                 director, "ChampionsTextController");
@@ -1177,8 +1141,8 @@ namespace {
                                                    &_flashPlayer);
 
                             auto root = il2cpp_symbols::get_method_pointer<Il2CppObject *(*)(
-                                    Il2CppObject *)>(_flashPlayer->klass, "get_Root",
-                                                     0)(_flashPlayer);
+                                    Il2CppObject *)>(_flashPlayer->klass, "get_Root", 0)(
+                                    _flashPlayer);
 
                             float scale = 1.0f;
 
@@ -1222,8 +1186,7 @@ namespace {
 
 
                         auto liveFlashController = il2cpp_symbols::get_method_pointer<Il2CppObject *(*)(
-                                Il2CppObject *)>(director, "get_LiveFlashController",
-                                                 0)(director);
+                                Il2CppObject *)>(director, "get_LiveFlashController", 0)(director);
 
                         if (liveFlashController) {
                             auto _flashPlayerField = il2cpp_class_get_field_from_name(
@@ -1235,8 +1198,8 @@ namespace {
                                                        &_flashPlayer);
 
                                 auto root = il2cpp_symbols::get_method_pointer<Il2CppObject *(*)(
-                                        Il2CppObject *)>(_flashPlayer->klass, "get_Root",
-                                                         0)(_flashPlayer);
+                                        Il2CppObject *)>(_flashPlayer->klass, "get_Root", 0)(
+                                        _flashPlayer);
 
                                 float scale = 1.0f;
 
@@ -1274,16 +1237,17 @@ namespace {
 
                                 il2cpp_symbols::get_method_pointer<void (*)(Il2CppObject *,
                                                                             UnityEngine::Vector2)>(
-                                        root->klass, "SetScreenReferenceSize", 1)(
-                                        root, UnityEngine::Vector2{width, height});
+                                        root->klass, "SetScreenReferenceSize", 1)(root,
+                                                                                  UnityEngine::Vector2{
+                                                                                          width,
+                                                                                          height});
                             }
                         }
                     }
 
                     if (tapEffectController) {
                         il2cpp_symbols::get_method_pointer<void (*)(Il2CppObject *)>(
-                                tapEffectController->klass, "RefreshAll", 0)(
-                                tapEffectController);
+                                tapEffectController->klass, "RefreshAll", 0)(tapEffectController);
                     }
 
                     if (uiManager) {
@@ -1334,14 +1298,11 @@ namespace {
                     auto director = Gallop::Live::Director::Instance();
                     if (director) {
                         auto LiveCurrentTime = il2cpp_symbols::get_method_pointer<float (*)(
-                                Il2CppObject *)>(director, "get_LiveCurrentTime",
-                                                 0)(director);
+                                Il2CppObject *)>(director, "get_LiveCurrentTime", 0)(director);
                         auto LiveTotalTime = il2cpp_symbols::get_method_pointer<float (*)(
-                                Il2CppObject *)>(director, "get_LiveTotalTime",
-                                                 0)(director);
+                                Il2CppObject *)>(director, "get_LiveTotalTime", 0)(director);
 
-                        auto sliderCommon = Localify::UIParts::GetOptionSlider(
-                                "live_slider");
+                        auto sliderCommon = Localify::UIParts::GetOptionSlider("live_slider");
 
                         auto textCommon = Localify::UIParts::GetTextCommon("live_slider");
 
@@ -1355,8 +1316,8 @@ namespace {
                             stringstream str;
                             str << setw(2) << setfill('0') << timeSecIl2Cpp;
 
-                            textCommon.text(il2cpp_string_new(
-                                    (timeMinIl2Cpp + ":" + str.str()).data()));
+                            textCommon.text(
+                                    il2cpp_string_new((timeMinIl2Cpp + ":" + str.str()).data()));
                         }
 
                         auto textCommonTotal = Localify::UIParts::GetTextCommon(
@@ -1372,8 +1333,8 @@ namespace {
                             stringstream str;
                             str << setw(2) << setfill('0') << timeSecIl2Cpp;
 
-                            textCommonTotal.text(il2cpp_string_new(
-                                    (timeMinIl2Cpp + ":" + str.str()).data()));
+                            textCommonTotal.text(
+                                    il2cpp_string_new((timeMinIl2Cpp + ":" + str.str()).data()));
                         }
 
                         if (config::live_playback_loop) {
@@ -1385,17 +1346,14 @@ namespace {
 
                         try {
                             if (sliderCommon) {
-                                il2cpp_symbols::get_method_pointer<void (*)(Il2CppObject *,
-                                                                            float)>(
-                                        sliderCommon->klass, "set_maxValue", 1)(
-                                        sliderCommon, LiveTotalTime);
-                                il2cpp_symbols::get_method_pointer<void (*)(Il2CppObject *,
-                                                                            float)>(
-                                        sliderCommon->klass, "SetValueWithoutNotify",
-                                        1)(sliderCommon, LiveCurrentTime);
+                                il2cpp_symbols::get_method_pointer<void (*)(Il2CppObject *, float)>(
+                                        sliderCommon->klass, "set_maxValue", 1)(sliderCommon,
+                                                                                LiveTotalTime);
+                                il2cpp_symbols::get_method_pointer<void (*)(Il2CppObject *, float)>(
+                                        sliderCommon->klass, "SetValueWithoutNotify", 1)(
+                                        sliderCommon, LiveCurrentTime);
                             }
-                        }
-                        catch (const Il2CppExceptionWrapper &ex) {
+                        } catch (const Il2CppExceptionWrapper &ex) {
                             cout << ex.ex->klass->name << ": ";
                             wcout << ex.ex->message << endl;
                         }
@@ -1404,8 +1362,7 @@ namespace {
             }
 
             StartTickFrame();
-        }
-        catch (const Il2CppExceptionWrapper &ex) {
+        } catch (const Il2CppExceptionWrapper &ex) {
             LOGW("TickFrame error: %s", il2cpp_u8(ex.ex->message->chars).data());
         }
     }
@@ -1420,8 +1377,7 @@ namespace {
                         "umamusume.dll", "Gallop", "MonoBehaviourExtension", "WaitForEndFrame", 2)(
                         GameSystem, tickFrameDelegate);
             }
-        }
-        catch (const Il2CppExceptionWrapper &ex) {
+        } catch (const Il2CppExceptionWrapper &ex) {
             LOGW("StartTickFrame error: %s", il2cpp_u8(ex.ex->message->chars).data());
         }
     }
@@ -1515,8 +1471,7 @@ namespace {
                         path + il2cppstring(IL2CPP_STRING(R"(\master\master_orig.mdb)")))) {
                     filesystem::remove_all(path + il2cppstring(IL2CPP_STRING(R"(\master)")));
                 }
-            }
-            catch (const exception &ex) {
+            } catch (const exception &ex) {
                 wcerr << L"Failed to remove master_orig.mdb: " << ex.what() << endl;
             }
         }
@@ -1574,8 +1529,8 @@ namespace {
                                                               "WorkDataManager"));
 
                             auto workCharaData = il2cpp_symbols::get_method_pointer<Il2CppObject *(*)(
-                                    Il2CppObject *)>(workDataManager->klass, "get_CharaData",
-                                                     0)(workDataManager);
+                                    Il2CppObject *)>(workDataManager->klass, "get_CharaData", 0)(
+                                    workDataManager);
 
                             auto UserCharaClass = il2cpp_symbols::get_class("umamusume.Http.dll",
                                                                             "Gallop", "UserChara");
@@ -1619,8 +1574,8 @@ namespace {
 
                                 il2cpp_symbols::get_method_pointer<void (*)(Il2CppObject *,
                                                                             Il2CppObject *)>(
-                                        workCharaData->klass, "UpdateCharaData", 1)(
-                                        workCharaData, userChara);
+                                        workCharaData->klass, "UpdateCharaData", 1)(workCharaData,
+                                                                                    userChara);
                             }
                         }
                     }
@@ -1629,19 +1584,17 @@ namespace {
                         auto loadSettings = il2cpp_symbols::get_method_pointer<Il2CppObject *(*)()>(
                                 "umamusume.dll", "Gallop.Live", "Director", "get_LoadSettings",
                                 IgnoreNumberOfArguments)();
-                        auto musicId = il2cpp_symbols::get_method_pointer<int (*)(
-                                Il2CppObject *)>(loadSettings->klass, "get_MusicId",
-                                                 0)(loadSettings);
+                        auto musicId = il2cpp_symbols::get_method_pointer<int (*)(Il2CppObject *)>(
+                                loadSettings->klass, "get_MusicId", 0)(loadSettings);
 
                         if (musicId == 1054) {
                             auto raceInfo = il2cpp_symbols::get_method_pointer<Il2CppObject *(*)(
-                                    Il2CppObject *)>(loadSettings->klass, "get_raceInfo",
-                                                     0)(loadSettings);
+                                    Il2CppObject *)>(loadSettings->klass, "get_raceInfo", 0)(
+                                    loadSettings);
 
                             auto resourceId = il2cpp_symbols::get_method_pointer<int (*)(
                                     Il2CppObject *)>(raceInfo->klass,
-                                                     "get_ChampionsMeetingResourceId",
-                                                     0)(raceInfo);
+                                                     "get_ChampionsMeetingResourceId", 0)(raceInfo);
 
                             if (resourceId == 0) {
                                 auto charaNameArray = il2cpp_array_new_type<Il2CppString *>(
@@ -1651,12 +1604,12 @@ namespace {
 
                                 il2cpp_symbols::get_method_pointer<void (*)(Il2CppObject *,
                                                                             Il2CppArraySize_t<Il2CppString *> *)>(
-                                        raceInfo->klass, "set_CharacterNameArray",
-                                        1)(raceInfo, charaNameArray);
+                                        raceInfo->klass, "set_CharacterNameArray", 1)(raceInfo,
+                                                                                      charaNameArray);
                                 il2cpp_symbols::get_method_pointer<void (*)(Il2CppObject *,
                                                                             Il2CppArraySize_t<Il2CppString *> *)>(
-                                        raceInfo->klass, "set_TrainerNameArray", 1)(
-                                        raceInfo, trainerNameArray);
+                                        raceInfo->klass, "set_TrainerNameArray", 1)(raceInfo,
+                                                                                    trainerNameArray);
 
                                 il2cpp_symbols::get_method_pointer<void (*)(Il2CppObject *,
                                                                             Il2CppArraySize_t<Il2CppString *> *)>(
@@ -1664,13 +1617,12 @@ namespace {
                                         1)(raceInfo, nullptr);
                                 il2cpp_symbols::get_method_pointer<void (*)(Il2CppObject *,
                                                                             Il2CppArraySize_t<Il2CppString *> *)>(
-                                        raceInfo->klass, "set_TrainerNameArrayForChampionsText",
-                                        1)(raceInfo, nullptr);
+                                        raceInfo->klass, "set_TrainerNameArrayForChampionsText", 1)(
+                                        raceInfo, nullptr);
 
                                 auto charaInfoList = il2cpp_symbols::get_method_pointer<Il2CppObject *(*)(
                                         Il2CppObject *)>(loadSettings->klass,
-                                                         "get_CharacterInfoList", 0)(
-                                        loadSettings);
+                                                         "get_CharacterInfoList", 0)(loadSettings);
 
                                 FieldInfo *itemsField = il2cpp_class_get_field_from_name(
                                         charaInfoList->klass, "_items");
@@ -1680,11 +1632,9 @@ namespace {
                                 for (int i = 0; i < 9; i++) {
                                     auto info = charaInfoArr->vector[i];
                                     auto charaId = il2cpp_symbols::get_method_pointer<int (*)(
-                                            Il2CppObject *)>(info->klass, "get_CharaId",
-                                                             0)(info);
+                                            Il2CppObject *)>(info->klass, "get_CharaId", 0)(info);
                                     auto mobId = il2cpp_symbols::get_method_pointer<int (*)(
-                                            Il2CppObject *)>(info->klass, "get_MobId",
-                                                             0)(info);
+                                            Il2CppObject *)>(info->klass, "get_MobId", 0)(info);
 
                                     Il2CppString *charaName;
                                     if (charaId == 1) {
@@ -1701,20 +1651,16 @@ namespace {
                                     il2cpp_array_setref(trainerNameArray, i, il2cpp_string_new(""));
                                 }
 
-                                il2cpp_symbols::get_method_pointer<void (*)(Il2CppObject *,
-                                                                            int)>(
-                                        raceInfo->klass, "set_ChampionsMeetingResourceId",
-                                        1)(raceInfo,
-                                           config::champions_live_resource_id);
-                                il2cpp_symbols::get_method_pointer<void (*)(Il2CppObject *,
-                                                                            int)>(
+                                il2cpp_symbols::get_method_pointer<void (*)(Il2CppObject *, int)>(
+                                        raceInfo->klass, "set_ChampionsMeetingResourceId", 1)(
+                                        raceInfo, config::champions_live_resource_id);
+                                il2cpp_symbols::get_method_pointer<void (*)(Il2CppObject *, int)>(
                                         raceInfo->klass, "set_DateYear", 1)(raceInfo,
                                                                             config::champions_live_year);
                             }
                         }
                     }
-                })
-        );
+                }));
         il2cpp_field_static_set_value(activeSceneChangedField, action);
     }
 }
@@ -1731,8 +1677,7 @@ static bool dlopen_process(const char *name, void *handle) {
 
             il2cpp_init_addr = dlsym(il2cpp_handle, "il2cpp_init");
             il2cpp_symbols::init(il2cpp_handle);
-            DobbyHook(il2cpp_init_addr,
-                      reinterpret_cast<void *>(il2cpp_init_hook),
+            DobbyHook(il2cpp_init_addr, reinterpret_cast<void *>(il2cpp_init_hook),
                       &il2cpp_init_orig);
 
             thread init_thread([]() {
@@ -1849,8 +1794,10 @@ HOOK_DEF(void*, NativeBridgeLoadLibraryExt_V30, const char *filename, int flag,
                                                                      "NativeBridgeError"));
         auto *NativeBridgeGetError = reinterpret_cast<char *(*)()>(dlsym(nativeBridge,
                                                                          "NativeBridgeGetError"));
-        auto *NativeBridgeGetTrampoline = reinterpret_cast<void *(*)(void* handle, const char* name, const char* shorty, uint32_t len)>(dlsym(nativeBridge,
-                                                                         "NativeBridgeGetTrampoline"));
+        auto *NativeBridgeGetTrampoline = reinterpret_cast<void *(*)(void *handle, const char *name,
+                                                                     const char *shorty,
+                                                                     uint32_t len)>(dlsym(
+                nativeBridge, "NativeBridgeGetTrampoline"));
 
         stringstream path_armV8;
         path_armV8 << "/data/data/" << Game::GetCurrentPackageName().data() << "/arm64-v8a.so";
@@ -1873,7 +1820,8 @@ HOOK_DEF(void*, NativeBridgeLoadLibraryExt_V30, const char *filename, int flag,
                 }
             }
 
-            auto hook = reinterpret_cast<void (*)(JNIEnv*, Resource*)>(NativeBridgeGetTrampoline(lib, "hook", "VLL", 3));
+            auto hook = reinterpret_cast<void (*)(JNIEnv *, Resource *)>(NativeBridgeGetTrampoline(
+                    lib, "hook", "VLL", 3));
             hook(env, classesDex);
 
             DobbyDestroy(addr_NativeBridgeLoadLibraryExt_V30);
