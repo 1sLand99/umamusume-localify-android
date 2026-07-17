@@ -104,7 +104,7 @@ namespace MsgPackModify
 
 		sqlite3_exec(db, "UPDATE chara_data SET shape = 1 WHERE id = 9001", nullptr, nullptr, nullptr);
 
-		sqlite3_exec(db, "UPDATE omakase_scenario SET start_date = '2026/06/29 12:00:00'", nullptr, nullptr, nullptr);
+		sqlite3_exec(db, "UPDATE omakase_scenario SET start_date = '2025/06/29 12:00:00'", nullptr, nullptr, nullptr);
 
 		unordered_map<int, bool> masterCardIds;
 
@@ -139,7 +139,7 @@ namespace MsgPackModify
 		sqlite3_finalize(stmt2);
 
 		sqlite3* metaDB = nullptr;
-		auto DB = il2cpp_symbols::get_method_pointer<Il2CppObject* (*)()>("umamusume.dll", "Gallop", "AssetManager", "get_DB", 0)();
+		auto DB = il2cpp_symbols::get_method_pointer<Il2CppObject * (*)()>("umamusume.dll", "Gallop", "AssetManager", "get_DB", 0)();
 
 		if (DB)
 		{

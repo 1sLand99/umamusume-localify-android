@@ -18,8 +18,8 @@ namespace Game {
         UNKNOWN,
         JPN,
         KOR,
-#ifdef __ANDROID__
         TWN,
+#ifdef __ANDROID__
         CHN,
 #endif
         ENG,
