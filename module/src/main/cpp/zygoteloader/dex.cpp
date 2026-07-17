@@ -7,10 +7,7 @@
 #include <vector>
 #include <cstdint>
 
-#include "lsplant.hpp"
-
 #include "hook.h"
-
 
 #define find_class(var_name, name) jclass var_name = env->FindClass(name);
 #define find_static_method(var_name, clazz, name, signature) jmethodID var_name = env->GetStaticMethodID(clazz, name, signature);
@@ -21,17 +18,9 @@
 extern "C" {
 #endif
 
-jobject doHook(JNIEnv *env, jobject thiz, jobject target, jobject callback) {
-    return lsplant::Hook(env, target, thiz, callback);
-}
-
-jboolean doUnhook(JNIEnv *env, jobject /*this*/, jobject target) {
-    return lsplant::UnHook(env, target);
-}
-
 std::string error_msg;
 
-void _append_exception_trace_messages(
+static void _append_exception_trace_messages(
         JNIEnv &a_jni_env,
         std::string &a_error_msg,
         jthrowable a_exception,
@@ -44,7 +33,7 @@ void _append_exception_trace_messages(
             static_cast<jobjectArray>(a_jni_env.CallObjectMethod(
                     a_exception,
                     a_mid_throwable_getStackTrace));
-    const jsize frames_length = a_jni_env.GetArrayLength(frames);
+    const auto frames_length = a_jni_env.GetArrayLength(frames);
 
     // Add Throwable.toString() before descending
     // stack trace messages.
@@ -74,7 +63,7 @@ void _append_exception_trace_messages(
             // Get the string returned from the 'toString()'
             // method of the next frame and append it to
             // the error message.
-            jobject frame = a_jni_env.GetObjectArrayElement(frames, i);
+            auto frame = a_jni_env.GetObjectArrayElement(frames, i);
             auto msg_obj =
                     static_cast<jstring>(a_jni_env.CallObjectMethod(frame,
                                                                     a_mid_frame_toString));
@@ -105,10 +94,12 @@ void _append_exception_trace_messages(
                                              a_mid_throwable_getStackTrace,
                                              a_mid_throwable_toString,
                                              a_mid_frame_toString);
-            LOGE("ERROR: %s", error_msg.data());
+            a_jni_env.DeleteLocalRef(cause);
         }
     }
 }
+
+jclass localify_class;
 
 void dex_load_and_invoke(
         JNIEnv *env,
@@ -117,7 +108,7 @@ void dex_load_and_invoke(
     find_class(c_class_loader, "java/lang/ClassLoader");
     find_static_method(m_get_system_class_loader, c_class_loader, "getSystemClassLoader",
                        "()Ljava/lang/ClassLoader;");
-    jobject o_system_class_loader = env->CallStaticObjectMethod(
+    auto o_system_class_loader = env->CallStaticObjectMethod(
             c_class_loader,
             m_get_system_class_loader
     );
@@ -125,48 +116,75 @@ void dex_load_and_invoke(
     find_class(c_dex_class_loader, "dalvik/system/InMemoryDexClassLoader");
     find_method(m_dex_class_loader, c_dex_class_loader, "<init>",
                 "(Ljava/nio/ByteBuffer;Ljava/lang/ClassLoader;)V");
-    jobject o_dex_class_loader = env->NewObject(
+    auto byteBuffer = env->NewDirectByteBuffer(const_cast<void *>(dex_block), dex_length);
+    auto o_dex_class_loader = env->NewObject(
             c_dex_class_loader,
             m_dex_class_loader,
-            env->NewDirectByteBuffer(const_cast<void *>(dex_block), dex_length),
+            byteBuffer,
             o_system_class_loader
     );
+    env->DeleteLocalRef(byteBuffer);
+    env->DeleteLocalRef(o_system_class_loader);
+    env->DeleteLocalRef(c_dex_class_loader);
 
     find_method(m_load_class, c_class_loader, "loadClass",
                 "(Ljava/lang/String;)Ljava/lang/Class;");
 
-    auto c_loader = static_cast<jclass>(env->CallObjectMethod(
+    auto windowMetricsCalculatorClassName = new_string("androidx.window.layout.WindowMetricsCalculatorCompat");
+    auto windowMetricsCalculatorClass = static_cast<jclass>(env->CallObjectMethod(
             o_dex_class_loader,
             m_load_class,
-            new_string("com.kimjio.umamusumelocalify.Hooker")
+            windowMetricsCalculatorClassName
     ));
+    env->DeleteLocalRef(windowMetricsCalculatorClassName);
+
+    auto windowMetricsCalculatorInitId = env->GetMethodID(windowMetricsCalculatorClass,
+                                                          "<init>",
+                                                          "()V");
+
+    jobject windowMetricsCalculatorLocal = env->NewObject(windowMetricsCalculatorClass,
+                                                          windowMetricsCalculatorInitId);
+
+    windowMetricsCalculator = env->NewGlobalRef(windowMetricsCalculatorLocal);
+    env->DeleteLocalRef(windowMetricsCalculatorLocal);
+    env->DeleteLocalRef(windowMetricsCalculatorClass);
+
+    auto localifyClassName = new_string("com.kimjio.umamusumelocalify.UmamusumeLocalify");
+    auto localify_class_local = static_cast<jclass>(env->CallObjectMethod(
+            o_dex_class_loader,
+            m_load_class,
+            localifyClassName
+    ));
+    env->DeleteLocalRef(localifyClassName);
+
+    localify_class = static_cast<jclass>(env->NewGlobalRef(localify_class_local));
+    env->DeleteLocalRef(localify_class_local);
 
     std::vector<JNINativeMethod> methods = {
-            {.name = "doHook",
-                    .signature = "(Ljava/lang/reflect/Member;Ljava/lang/reflect/Method;)Ljava/lang/reflect/Method;",
-                    .fnPtr = reinterpret_cast<void *>(doHook)},
-            {.name = "doUnhook",
-                    .signature = "(Ljava/lang/reflect/Member;)Z",
-                    .fnPtr = reinterpret_cast<void *>(doUnhook)},
             {.name = "onConfigurationChanged_native",
                 .signature = "(Landroid/app/Activity;Landroid/content/res/Configuration;)V",
                 .fnPtr = reinterpret_cast<void *>(onConfigurationChanged_native)}
     };
 
-    env->RegisterNatives(c_loader, methods.data(), static_cast<jint>(methods.size()));
+    env->RegisterNatives(localify_class, methods.data(), static_cast<jint>(methods.size()));
 
-    find_static_method(m_load, c_loader, "load", "()V");
+    find_static_method(m_load, localify_class, "load", "()V");
 
     env->CallStaticVoidMethod(
-            c_loader,
+            localify_class,
             m_load
     );
+
+    env->DeleteLocalRef(o_dex_class_loader);
+    env->DeleteLocalRef(c_class_loader);
 
     if (env->ExceptionCheck()) {
         LOGW("Dex exception!");
 
         jthrowable exception = env->ExceptionOccurred();
         env->ExceptionClear();
+
+        error_msg.clear();
 
         jclass throwable_class = env->FindClass("java/lang/Throwable");
         jmethodID mid_throwable_getCause =
@@ -194,7 +212,92 @@ void dex_load_and_invoke(
                                          mid_throwable_getStackTrace,
                                          mid_throwable_toString,
                                          mid_frame_toString);
+
+        LOGE("Dex load exception: %s", error_msg.c_str());
+
+        env->DeleteLocalRef(exception);
+        env->DeleteLocalRef(throwable_class);
+        env->DeleteLocalRef(frame_class);
     }
+}
+
+void register_callback(JNIEnv *env, jobject activity) {
+    find_static_method(m_registerCallback, localify_class, "registerCallback", "(Landroid/app/Activity;)V");
+
+    env->CallStaticVoidMethod(
+            localify_class,
+            m_registerCallback,
+            activity
+    );
+
+    if (env->ExceptionCheck()) {
+        LOGW("Dex exception!");
+
+        jthrowable exception = env->ExceptionOccurred();
+        env->ExceptionClear();
+
+        error_msg.clear();
+
+        jclass throwable_class = env->FindClass("java/lang/Throwable");
+        jmethodID mid_throwable_getCause =
+                env->GetMethodID(throwable_class,
+                                 "getCause",
+                                 "()Ljava/lang/Throwable;");
+        jmethodID mid_throwable_getStackTrace =
+                env->GetMethodID(throwable_class,
+                                 "getStackTrace",
+                                 "()[Ljava/lang/StackTraceElement;");
+        jmethodID mid_throwable_toString =
+                env->GetMethodID(throwable_class,
+                                 "toString",
+                                 "()Ljava/lang/String;");
+
+        jclass frame_class = env->FindClass("java/lang/StackTraceElement");
+        jmethodID mid_frame_toString =
+                env->GetMethodID(frame_class,
+                                 "toString",
+                                 "()Ljava/lang/String;");
+        _append_exception_trace_messages(*env,
+                                         error_msg,
+                                         exception,
+                                         mid_throwable_getCause,
+                                         mid_throwable_getStackTrace,
+                                         mid_throwable_toString,
+                                         mid_frame_toString);
+
+        LOGE("register_callback exception: %s", error_msg.c_str());
+
+        env->DeleteLocalRef(exception);
+        env->DeleteLocalRef(throwable_class);
+        env->DeleteLocalRef(frame_class);
+    }
+}
+
+bool isEdgeToEdgeEnabled(JNIEnv *env, jobject activity) {
+    find_static_method(m_isEdgeToEdgeEnabled, localify_class, "isEdgeToEdgeEnabled", "(Landroid/app/Activity;)Z");
+    return env->CallStaticBooleanMethod(
+            localify_class,
+            m_isEdgeToEdgeEnabled,
+            activity
+    );
+}
+
+void setRequestedOrientation(JNIEnv *env, jobject activity) {
+    auto activityClass = env->GetObjectClass(activity);
+    auto activityInfoClass = env->FindClass("android/content/pm/ActivityInfo");
+    auto SCREEN_ORIENTATION_FieldID = env->GetStaticFieldID(activityInfoClass,
+                                                                "SCREEN_ORIENTATION_FULL_USER",
+                                                                "I");
+    const auto SCREEN_ORIENTATION = env->GetStaticIntField(activityInfoClass,
+                                                           SCREEN_ORIENTATION_FieldID);
+
+    auto setRequestedOrientation = env->GetMethodID(activityClass,
+                                                         "setRequestedOrientation",
+                                                         "(I)V");
+
+    env->CallVoidMethod(activity, setRequestedOrientation, SCREEN_ORIENTATION);
+    env->DeleteLocalRef(activityInfoClass);
+    env->DeleteLocalRef(activityClass);
 }
 
 #ifdef __cplusplus

@@ -14,24 +14,9 @@
 #include "hook.h"
 #include "zygisk.hpp"
 
-#include "elf_image.h"
-
-#include "lsplant.hpp"
-
 #include "zygoteloader/dex.hpp"
 #include "zygoteloader/serializer.h"
 #include "zygoteloader/zygoteloader.h"
-
-#define _u_int_val(p)               reinterpret_cast<uintptr_t>(p)
-#define _ptr(p)                   (reinterpret_cast<void *>(p))
-#define _align_up(x, n)           (((x) + ((n) - 1)) & ~((n) - 1))
-#define _align_down(x, n)         ((x) & -(n))
-#define _page_size                4096
-#define _page_align(n)            _align_up(static_cast<uintptr_t>(n), _page_size)
-#define _ptr_align(x)             _ptr(_align_down(reinterpret_cast<uintptr_t>(x), _page_size))
-#define make_rwx(p, n)           ::mprotect(_ptr_align(p), \
-                                              _page_align(_u_int_val(p) + (n)) != _page_align(_u_int_val(p)) ? _page_align(n) + _page_size : _page_align(n), \
-                                              PROT_READ | PROT_WRITE | PROT_EXEC)
 
 enum FileCommand : int {
     INITIALIZE, IS_INITIALIZED, GET_RESOURCES
@@ -40,20 +25,6 @@ enum FileCommand : int {
 using zygisk::Api;
 using zygisk::AppSpecializeArgs;
 using zygisk::ServerSpecializeArgs;
-
-static void* InlineHooker(void *target, void *hooker) {
-    make_rwx(target, _page_size);
-    void *origin_call;
-    if (DobbyHook(target, hooker, &origin_call) == 0) {
-        return origin_call;
-    } else {
-        return nullptr;
-    }
-}
-
-static bool InlineUnhooker(void *func) {
-    return DobbyDestroy(func) == 0;
-}
 
 void handleFileRequest(int client) {
     static pthread_mutex_t initializeLock = PTHREAD_MUTEX_INITIALIZER;
@@ -131,18 +102,7 @@ public:
         if (enable_hack) {
             if (!IsABIRequiredNativeBridge())
             {
-                ElfImage art("libart.so");
-                const lsplant::InitInfo initInfo{
-                        .inline_hooker = InlineHooker,
-                        .inline_unhooker = InlineUnhooker,
-                        .art_symbol_resolver = [&art](std::string_view symbol) -> void * {
-                            return art.getSymbAddress(symbol);
-                        },
-                        .art_symbol_prefix_resolver = [&art](auto symbol) {
-                            return art.getSymbPrefixFirstAddress(symbol);
-                        },
-                };
-                if (lsplant::Init(env, initInfo) && classesDex != nullptr) {
+                if (classesDex != nullptr) {
                     dex_load_and_invoke(
                             env,
                             classesDex->base, classesDex->length
@@ -217,18 +177,7 @@ void hook(JNIEnv *env, Resource *classesDex) {
             return;
         }
 
-        ElfImage art("libart.so");
-        const lsplant::InitInfo initInfo{
-                .inline_hooker = InlineHooker,
-                .inline_unhooker = InlineUnhooker,
-                .art_symbol_resolver = [&art](std::string_view symbol) -> void * {
-                    return art.getSymbAddress(symbol);
-                },
-                .art_symbol_prefix_resolver = [&art](auto symbol) {
-                    return art.getSymbPrefixFirstAddress(symbol);
-                },
-        };
-        if (lsplant::Init(env, initInfo) && classesDex != nullptr) {
+        if (classesDex != nullptr) {
             dex_load_and_invoke(
                     env,
                     classesDex->base, classesDex->length

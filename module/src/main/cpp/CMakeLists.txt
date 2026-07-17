@@ -28,30 +28,6 @@ endif ()
 set(HTTPLIB_USE_ZSTD_IF_AVAILABLE OFF CACHE BOOL "" FORCE)
 add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/httplib)
 
-add_compile_definitions(PHMAP_HAVE_SSE2=0 PHMAP_HAVE_SSSE3=0)
-SET_OPTION(LSPLANT_BUILD_SHARED OFF)
-add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/LSPlant/lsplant/src/main/jni)
-
-if (TARGET lsplant_static)
-    target_compile_options(lsplant_static PUBLIC -Wno-gnu-anonymous-struct)
-    set_target_properties(lsplant_static PROPERTIES
-            CXX_STANDARD 23
-            CXX_STANDARD_REQUIRED ON
-            CXX_EXTENSIONS ON
-    )
-endif ()
-
-set(XZ_SOURCES
-        xz_crc32.c
-        xz_crc64.c
-        xz_dec_lzma2.c
-        xz_dec_stream.c)
-set(XZ_INCLUDES ${CMAKE_CURRENT_LIST_DIR}/xz-embedded/linux/include/linux ${CMAKE_CURRENT_LIST_DIR}/xz-embedded/userspace)
-list(TRANSFORM XZ_SOURCES PREPEND ${CMAKE_CURRENT_LIST_DIR}/xz-embedded/linux/lib/xz/)
-add_library(xz_static STATIC ${XZ_SOURCES})
-target_compile_options(xz_static PRIVATE -DXZ_USE_CRC64)
-target_include_directories(xz_static PRIVATE ${XZ_INCLUDES})
-
 file(GLOB_RECURSE PROJECT_SOURCES
         RELATIVE ${CMAKE_CURRENT_LIST_DIR}
         "*.cpp"
@@ -59,12 +35,10 @@ file(GLOB_RECURSE PROJECT_SOURCES
 )
 
 list(FILTER PROJECT_SOURCES EXCLUDE REGEX "^Dobby/.*")
-list(FILTER PROJECT_SOURCES EXCLUDE REGEX "^LSPlant/.*")
 list(FILTER PROJECT_SOURCES EXCLUDE REGEX "^hmac_sha256/.*")
 list(FILTER PROJECT_SOURCES EXCLUDE REGEX "^httplib/.*")
 list(FILTER PROJECT_SOURCES EXCLUDE REGEX "^rapidjson/.*")
 list(FILTER PROJECT_SOURCES EXCLUDE REGEX "^msgpack11/.*")
-list(FILTER PROJECT_SOURCES EXCLUDE REGEX "^xz-embedded/.*")
 
 list(FILTER PROJECT_SOURCES EXCLUDE REGEX "^_il2cpp_hook\\.cpp$")
 
@@ -81,8 +55,6 @@ include_directories(${CMAKE_CURRENT_LIST_DIR}/notifier)
 include_directories(${CMAKE_CURRENT_LIST_DIR}/zygoteloader)
 
 include_directories(include)
-
-include_directories(${CMAKE_CURRENT_LIST_DIR}/xz-embedded/linux/include)
 
 message("Build type: ${CMAKE_BUILD_TYPE}")
 
@@ -110,7 +82,7 @@ set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} ${LINKER_FLAGS}")
 set(CMAKE_MODULE_LINKER_FLAGS "${CMAKE_MODULE_LINKER_FLAGS} ${LINKER_FLAGS}")
 
 add_library(${MODULE_NAME} SHARED ${PROJECT_SOURCES})
-target_link_libraries(${MODULE_NAME} log xz_static dobby_static msgpack11 lsplant_static hmac_sha256 httplib)
+target_link_libraries(${MODULE_NAME} log nativehelper dobby_static msgpack11 hmac_sha256 httplib)
 
 if (NOT CMAKE_BUILD_TYPE STREQUAL "Debug")
     add_custom_command(TARGET ${MODULE_NAME} POST_BUILD

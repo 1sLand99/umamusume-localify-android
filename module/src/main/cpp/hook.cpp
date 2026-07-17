@@ -2,6 +2,7 @@
 #include <cstring>
 #include <sstream>
 #include <thread>
+#include <vector>
 #include <dlfcn.h>
 
 #include "game.hpp"
@@ -14,11 +15,11 @@
 
 #include "log.h"
 
+#include "zygoteloader/dex.hpp"
 #include "zygoteloader/zygoteloader.h"
 
 #include "logger/logger.hpp"
 #include "config.hpp"
-#include "native_bridge_itf.h"
 
 #include "il2cpp_dump.h"
 
@@ -81,14 +82,11 @@ namespace {
 
     static bool il2cpp_init_hook(const char *domain_name) {
         DobbyDestroy(il2cpp_init_addr);
-        LOGD("il2cpp_init_hook: %s", domain_name);
         const auto result = reinterpret_cast<decltype(il2cpp_init_hook) *>(il2cpp_init_addr)(
                 domain_name);
 
         auto unityVersion = il2cpp_resolve_icall_type<Il2CppString *(*)()>(
                 "UnityEngine.Application::get_unityVersion")();
-
-        LOGD("Unity version: %s", il2cpp_u8(unityVersion->chars).data());
 
         if (IL2CPP_BASIC_STRING(unityVersion->chars).contains(IL2CPP_STRING("2020"))) {
             Game::CurrentUnityVersion = Game::UnityVersion::Unity20;
@@ -96,11 +94,8 @@ namespace {
             Game::CurrentUnityVersion = Game::UnityVersion::Unity22;
         }
 
-        if (result) {
-            il2cpp_symbols::il2cpp_domain = il2cpp_domain_get();
-            init_il2cpp();
-
-        }
+        il2cpp_symbols::il2cpp_domain = il2cpp_domain_get();
+        init_il2cpp();
         return result;
     }
 
@@ -1101,7 +1096,7 @@ namespace {
                     auto uiManager = Gallop::UIManager::Instance();
 
                     if (uiManager) {
-                        // uiManager.SetupSafeArea();
+                        uiManager.SetupSafeArea();
                         uiManager.AdjustSafeArea();
                         auto _bgManager = uiManager._bgManager();
                         if (_bgManager) {
@@ -1390,32 +1385,38 @@ namespace {
         }
 
         if (config::freeform_window) {
-            auto javaVM = il2cpp_symbols::get_method_pointer<JavaVM *(*)()>(
-                    "UnityEngine.AndroidJNIModule.dll", "UnityEngine", "AndroidJNI", "GetJavaVM",
-                    0)();
+            JavaVM *javaVM;
+            jsize numVMs = 0;
+            JNI_GetCreatedJavaVMs(&javaVM, 1, &numVMs);
 
             JNIEnv *env;
-            jint res = javaVM->GetEnv(reinterpret_cast<void **>(&env), JNI_VERSION_1_6);
-
-            if (res == JNI_OK) {
-                auto il2cppActivity = il2cpp_symbols::get_method_pointer<Il2CppObject *(*)()>(
+            javaVM->GetEnv(reinterpret_cast<void **>(&env), JNI_VERSION_1_6);
+            if (env) {
+                auto get_Activity = il2cpp_symbols::get_method_pointer<Il2CppObject *(*)()>(
                         "UnityEngine.AndroidJNIModule.dll", "UnityEngine.Android", "AndroidApp",
-                        "get_Activity", 0)();
+                        "get_Activity", 0);
+
+                if (!get_Activity) {
+                    get_Activity = il2cpp_symbols::get_method_pointer<Il2CppObject *(*)()>(
+                            "UnityEngine.AndroidJNIModule.dll", "UnityEngine.Android", "Permission",
+                            "GetActivity", 0);
+                }
+
+                auto il2cppActivity = get_Activity();
                 auto activity = il2cpp_symbols::get_method_pointer<jobject (*)(Il2CppObject *)>(
                         il2cppActivity->klass, "GetRawObject", 0)(il2cppActivity);
 
-                jclass activityClass = env->GetObjectClass(activity);
-                jmethodID getWindowManagerMethod = env->GetMethodID(activityClass,
-                                                                    "getWindowManager",
-                                                                    "()Landroid/view/WindowManager;");
-                jobject windowManager = env->CallObjectMethod(activity, getWindowManagerMethod);
+                LOGD("register_callback");
+                register_callback(env, activity);
 
-                jclass windowManagerClass = env->GetObjectClass(windowManager);
-                jmethodID getCurrentWindowMetricsMethod = env->GetMethodID(windowManagerClass,
-                                                                           "getCurrentWindowMetrics",
-                                                                           "()Landroid/view/WindowMetrics;");
+                auto windowMetricsCalculatorClass = env->GetObjectClass(windowMetricsCalculator);
 
-                auto metrics = env->CallObjectMethod(windowManager, getCurrentWindowMetricsMethod);
+                auto computeId = env->GetMethodID(windowMetricsCalculatorClass,
+                                                  "computeCurrentWindowMetrics",
+                                                  "(Landroid/app/Activity;)Landroidx/window/layout/WindowMetrics;");
+                env->DeleteLocalRef(windowMetricsCalculatorClass);
+
+                auto metrics = env->CallObjectMethod(windowMetricsCalculator, computeId, activity);
 
                 auto metricsClass = env->GetObjectClass(metrics);
 
@@ -1426,38 +1427,59 @@ namespace {
                 auto rectClass = env->GetObjectClass(rect);
 
                 auto widthId = env->GetMethodID(rectClass, "width", "()I");
-                const jint width = env->CallIntMethod(rect, widthId);
+                jint width = env->CallIntMethod(rect, widthId);
 
                 auto heightId = env->GetMethodID(rectClass, "height", "()I");
-                const jint height = env->CallIntMethod(rect, heightId);
+                jint height = env->CallIntMethod(rect, heightId);
+
+                env->DeleteLocalRef(rect);
+                env->DeleteLocalRef(rectClass);
+
+                auto getWindowInsetsId = env->GetMethodID(metricsClass, "getWindowInsets",
+                                                          "()Landroidx/core/view/WindowInsetsCompat;");
+                auto windowInsets = env->CallObjectMethod(metrics, getWindowInsetsId);
+
+                env->DeleteLocalRef(metrics);
+                env->DeleteLocalRef(metricsClass);
+
+                auto windowInsetsClass = env->GetObjectClass(windowInsets);
+                auto getInsetsId = env->GetMethodID(windowInsetsClass, "getInsets",
+                                                    "(I)Landroidx/core/graphics/Insets;");
+                auto insets = env->CallObjectMethod(windowInsets, getInsetsId, 1 << 7);
+                env->DeleteLocalRef(windowInsets);
+                env->DeleteLocalRef(windowInsetsClass);
+
+                auto insetsClass = env->GetObjectClass(insets);
+                auto leftField = env->GetFieldID(insetsClass, "left", "I");
+                auto topField = env->GetFieldID(insetsClass, "top", "I");
+                auto rightField = env->GetFieldID(insetsClass, "right", "I");
+                auto bottomField = env->GetFieldID(insetsClass, "bottom", "I");
+
+                auto left = env->GetIntField(insets, leftField);
+                auto top = env->GetIntField(insets, topField);
+                auto right = env->GetIntField(insets, rightField);
+                auto bottom = env->GetIntField(insets, bottomField);
+
+                env->DeleteLocalRef(insets);
+                env->DeleteLocalRef(insetsClass);
 
                 const auto isPortrait = width <= height;
+
+                if (!isEdgeToEdgeEnabled(env, activity)) {
+                    if (isPortrait) {
+                        width -= left + right;
+                        height -= top + bottom;
+                    } else {
+                        width -= top + bottom;
+                        height -= left + right;
+                    }
+                }
+
                 Gallop::Screen::OriginalScreenWidth(isPortrait ? height : width);
                 Gallop::Screen::OriginalScreenHeight(isPortrait ? width : height);
 
+                LOGD("ResizeWindow");
                 ResizeWindow(width, height);
-
-                jclass activityInfoClass = env->FindClass("android/content/pm/ActivityInfo");
-                jfieldID SCREEN_ORIENTATION_FieldID = env->GetStaticFieldID(activityInfoClass,
-                                                                            "SCREEN_ORIENTATION_FULL_USER",
-                                                                            "I");
-                jint SCREEN_ORIENTATION = env->GetStaticIntField(activityInfoClass,
-                                                                 SCREEN_ORIENTATION_FieldID);
-
-                jmethodID setRequestedOrientation = env->GetMethodID(activityClass,
-                                                                     "setRequestedOrientation",
-                                                                     "(I)V");
-
-                env->CallVoidMethod(activity, setRequestedOrientation, SCREEN_ORIENTATION);
-
-                env->DeleteLocalRef(activityClass);
-                env->DeleteLocalRef(windowManager);
-                env->DeleteLocalRef(windowManagerClass);
-                env->DeleteLocalRef(metrics);
-                env->DeleteLocalRef(metricsClass);
-                env->DeleteLocalRef(rect);
-                env->DeleteLocalRef(rectClass);
-                env->DeleteLocalRef(activityInfoClass);
             }
         }
 
@@ -1663,6 +1685,7 @@ namespace {
                 }));
         il2cpp_field_static_set_value(activeSceneChangedField, action);
     }
+
 }
 
 static void *il2cpp_handle = nullptr;
@@ -1712,79 +1735,6 @@ HOOK_DEF(void*, do_dlopen_V24, const char *name, int flags, const void *extinfo 
     return handle;
 }
 
-HOOK_DEF(void*, NativeBridgeLoadLibrary_V21, const char *filename, int flag) {
-    if (string(filename).find(string("libmain.so")) != string::npos) {
-        auto nativeBridge = dlopen("libnativebridge.so", RTLD_NOW);
-        auto *NativeBridgeError = reinterpret_cast<bool (*)()>(dlsym(nativeBridge,
-                                                                     "_ZN7android17NativeBridgeErrorEv"));
-
-        stringstream path_armV8;
-        path_armV8 << "/data/data/" << Game::GetCurrentPackageName().data() << "/arm64-v8a.so";
-        stringstream path_armV7;
-        path_armV7 << "/data/data/" << Game::GetCurrentPackageName().data() << "/armeabi-v7a.so";
-
-        string path;
-
-        if (access(path_armV8.str().data(), F_OK) != -1) {
-            path = path_armV8.str();
-        } else if (access(path_armV7.str().data(), F_OK) != -1) {
-            path = path_armV7.str();
-        }
-
-        if (!path.empty()) {
-            thread load_thread([path, NativeBridgeError]() {
-                void *lib = orig_NativeBridgeLoadLibrary_V21(path.data(), RTLD_NOW);
-                LOGI("%s: %p", path.data(), lib);
-                if (NativeBridgeError()) {
-                    LOGW("LoadLibrary failed");
-                }
-                DobbyDestroy(addr_NativeBridgeLoadLibrary_V21);
-            });
-            load_thread.detach();
-        }
-    }
-
-    return orig_NativeBridgeLoadLibrary_V21(filename, flag);
-}
-
-HOOK_DEF(void*, NativeBridgeLoadLibraryExt_V26, const char *filename, int flag,
-         struct native_bridge_namespace_t *ns) {
-    if (string(filename).find(string("libmain.so")) != string::npos) {
-        auto nativeBridge = dlopen("libnativebridge.so", RTLD_NOW);
-        auto *NativeBridgeError = reinterpret_cast<bool (*)()>(dlsym(nativeBridge,
-                                                                     "_ZN7android17NativeBridgeErrorEv"));
-        auto *NativeBridgeGetError = reinterpret_cast<char *(*)()>(dlsym(nativeBridge,
-                                                                         "_ZN7android20NativeBridgeGetErrorEv"));
-
-        stringstream path_armV8;
-        path_armV8 << "/data/data/" << Game::GetCurrentPackageName().data() << "/arm64-v8a.so";
-        stringstream path_armV7;
-        path_armV7 << "/data/data/" << Game::GetCurrentPackageName().data() << "/armeabi-v7a.so";
-
-        string path;
-
-        if (access(path_armV8.str().data(), F_OK) != -1) {
-            path = path_armV8.str();
-        } else if (access(path_armV7.str().data(), F_OK) != -1) {
-            path = path_armV7.str();
-        }
-
-        if (!path.empty()) {
-            void *lib = orig_NativeBridgeLoadLibraryExt_V26(path.data(), RTLD_NOW, ns);
-            LOGI("%s: %p", path.data(), lib);
-            if (NativeBridgeError()) {
-                char *error_bridge = NativeBridgeGetError();
-                if (error_bridge) {
-                    LOGW("error_bridge: %s", error_bridge);
-                }
-            }
-            DobbyDestroy(addr_NativeBridgeLoadLibraryExt_V26);
-        }
-    }
-
-    return orig_NativeBridgeLoadLibraryExt_V26(filename, flag, ns);
-}
-
 HOOK_DEF(void*, NativeBridgeLoadLibraryExt_V30, const char *filename, int flag,
          struct native_bridge_namespace_t *ns) {
     LOGD("NativeBridgeLoadLibraryExt_V30: %s", filename);
@@ -1831,23 +1781,8 @@ HOOK_DEF(void*, NativeBridgeLoadLibraryExt_V30, const char *filename, int flag,
     return orig_NativeBridgeLoadLibraryExt_V30(filename, flag, ns);
 }
 
-void *GetNativeBridgeLoadLibrary(void *fallbackAddress) {
-    void *handle = dlopen(GetNativeBridgeLibrary().data(), RTLD_NOW);
-    // clear error
-    dlerror();
-    if (handle) {
-        auto itf = reinterpret_cast<NativeBridgeCallbacks *>(dlsym(handle, "NativeBridgeItf"));
-        LOGI("NativeBridgeItf version: %d", itf->version);
-        if (GetAndroidApiLevel() >= 26) {
-            return reinterpret_cast<void *>(itf->loadLibraryExt);
-        }
-        return reinterpret_cast<void *>(itf->loadLibrary);
-    }
-    return fallbackAddress;
-}
-
 extern "C" void
-onConfigurationChanged_native(JNIEnv *env, jobject /*this*/, jobject activity, jobject newConfig) {
+onConfigurationChanged_native(JNIEnv *env, jclass clazz, jobject activity, jobject newConfig) {
     if (!config::freeform_window) {
         return;
     }
@@ -1864,13 +1799,7 @@ onConfigurationChanged_native(JNIEnv *env, jobject /*this*/, jobject activity, j
         return;
     }
 
-    auto windowMetricsCalculatorClass = env->FindClass(
-            "androidx/window/layout/WindowMetricsCalculatorCompat");
-    auto windowMetricsCalculatorInitId = env->GetMethodID(windowMetricsCalculatorClass, "<init>",
-                                                          "()V");
-
-    auto windowMetricsCalculator = env->NewObject(windowMetricsCalculatorClass,
-                                                  windowMetricsCalculatorInitId);
+    auto windowMetricsCalculatorClass = env->GetObjectClass(windowMetricsCalculator);
 
     auto computeId = env->GetMethodID(windowMetricsCalculatorClass, "computeCurrentWindowMetrics",
                                       "(Landroid/app/Activity;)Landroidx/window/layout/WindowMetrics;");
@@ -1884,17 +1813,56 @@ onConfigurationChanged_native(JNIEnv *env, jobject /*this*/, jobject activity, j
     auto rectClass = env->GetObjectClass(rect);
 
     auto widthId = env->GetMethodID(rectClass, "width", "()I");
-    const jint width = env->CallIntMethod(rect, widthId);
+    jint width = env->CallIntMethod(rect, widthId);
 
     auto heightId = env->GetMethodID(rectClass, "height", "()I");
-    const jint height = env->CallIntMethod(rect, heightId);
+    jint height = env->CallIntMethod(rect, heightId);
 
-    env->DeleteLocalRef(windowMetricsCalculatorClass);
-    env->DeleteLocalRef(windowMetricsCalculator);
-    env->DeleteLocalRef(metrics);
-    env->DeleteLocalRef(metricsClass);
     env->DeleteLocalRef(rect);
     env->DeleteLocalRef(rectClass);
+
+    auto getWindowInsetsId = env->GetMethodID(metricsClass, "getWindowInsets",
+                                              "()Landroidx/core/view/WindowInsetsCompat;");
+    auto windowInsets = env->CallObjectMethod(metrics, getWindowInsetsId);
+
+    env->DeleteLocalRef(metrics);
+    env->DeleteLocalRef(metricsClass);
+
+    auto windowInsetsClass = env->GetObjectClass(windowInsets);
+    auto getInsetsId = env->GetMethodID(windowInsetsClass, "getInsets",
+                                        "(I)Landroidx/core/graphics/Insets;");
+    auto insets = env->CallObjectMethod(windowInsets, getInsetsId, 1 << 7);
+    env->DeleteLocalRef(windowInsets);
+    env->DeleteLocalRef(windowInsetsClass);
+
+    auto insetsClass = env->GetObjectClass(insets);
+    auto leftField = env->GetFieldID(insetsClass, "left", "I");
+    auto topField = env->GetFieldID(insetsClass, "top", "I");
+    auto rightField = env->GetFieldID(insetsClass, "right", "I");
+    auto bottomField = env->GetFieldID(insetsClass, "bottom", "I");
+
+    auto left = env->GetIntField(insets, leftField);
+    auto top = env->GetIntField(insets, topField);
+    auto right = env->GetIntField(insets, rightField);
+    auto bottom = env->GetIntField(insets, bottomField);
+
+    LOGD("insets: %d, %d, %d, %d", left, top, right, bottom);
+    env->DeleteLocalRef(insets);
+    env->DeleteLocalRef(insetsClass);
+
+    const auto isPortrait = width <= height;
+
+    if (!isEdgeToEdgeEnabled(env, activity)) {
+        if (isPortrait) {
+            width -= left + right;
+            height -= top + bottom;
+        } else {
+            width -= top + bottom;
+            height -= left + right;
+        }
+    }
+
+    LOGD("width: %d, height: %d", width, height);
 
     auto gameSystem = Gallop::GameSystem::Instance();
 
@@ -1953,33 +1921,13 @@ void hack_thread(HookArgs *args) {
     }
 
     if (IsABIRequiredNativeBridge()) {
-        if (api_level >= 30) {
-            addr_NativeBridgeLoadLibraryExt_V30 = dlsym(dlopen("libnativebridge.so", RTLD_NOW),
-                                                        "NativeBridgeLoadLibraryExt");
-            if (addr_NativeBridgeLoadLibraryExt_V30) {
-                LOGI("NativeBridgeLoadLibraryExt at: %p", addr_NativeBridgeLoadLibraryExt_V30);
-                DobbyHook(addr_NativeBridgeLoadLibraryExt_V30,
-                          reinterpret_cast<void *>(new_NativeBridgeLoadLibraryExt_V30),
-                          reinterpret_cast<void **>(&orig_NativeBridgeLoadLibraryExt_V30));
-            }
-        } else if (api_level >= 26) {
-            addr_NativeBridgeLoadLibraryExt_V26 = dlsym(dlopen("libnativebridge.so", RTLD_NOW),
-                                                        "_ZN7android26NativeBridgeLoadLibraryExtEPKciPNS_25native_bridge_namespace_tE");
-            if (addr_NativeBridgeLoadLibraryExt_V26) {
-                LOGI("NativeBridgeLoadLibraryExt at: %p", addr_NativeBridgeLoadLibraryExt_V26);
-                DobbyHook(addr_NativeBridgeLoadLibraryExt_V26,
-                          reinterpret_cast<void *>(new_NativeBridgeLoadLibraryExt_V26),
-                          reinterpret_cast<void **>(&orig_NativeBridgeLoadLibraryExt_V26));
-            }
-        } else {
-            addr_NativeBridgeLoadLibrary_V21 = dlsym(dlopen("libnativebridge.so", RTLD_NOW),
-                                                     "_ZN7android23NativeBridgeLoadLibraryEPKci");
-            if (addr_NativeBridgeLoadLibrary_V21) {
-                LOGI("NativeBridgeLoadLibrary at: %p", addr_NativeBridgeLoadLibrary_V21);
-                DobbyHook(addr_NativeBridgeLoadLibrary_V21,
-                          reinterpret_cast<void *>(new_NativeBridgeLoadLibrary_V21),
-                          reinterpret_cast<void **>(&orig_NativeBridgeLoadLibrary_V21));
-            }
+        addr_NativeBridgeLoadLibraryExt_V30 = dlsym(dlopen("libnativebridge.so", RTLD_NOW),
+                                                    "NativeBridgeLoadLibraryExt");
+        if (addr_NativeBridgeLoadLibraryExt_V30) {
+            LOGI("NativeBridgeLoadLibraryExt at: %p", addr_NativeBridgeLoadLibraryExt_V30);
+            DobbyHook(addr_NativeBridgeLoadLibraryExt_V30,
+                      reinterpret_cast<void *>(new_NativeBridgeLoadLibraryExt_V30),
+                      reinterpret_cast<void **>(&orig_NativeBridgeLoadLibraryExt_V30));
         }
     }
 }

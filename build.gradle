@@ -12,8 +12,7 @@ buildscript {
         google()
     }
     dependencies {
-        classpath 'com.android.tools.build:gradle:9.2.1'
-        // classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:1.9.10"
+        classpath 'com.android.tools.build:gradle:9.3.0'
     }
 }
 
@@ -25,7 +24,7 @@ allprojects {
 }
 
 ext {
-    minSdkVersion = 24
+    minSdkVersion = 31
     targetSdkVersion = 37
 
     outDir = file("$rootDir/out")
