@@ -4,14 +4,15 @@
 #include <vector>
 #include <string>
 #include <sstream>
-#include <algorithm>
 #include <iomanip>
 
 #ifdef _MSC_VER
+#include <Shlwapi.h>
 #include <Shlobj.h>
 #include <ShObjIdl.h>
 #include <wrl.h>
 #include <wil/com.h>
+#include "notification/DesktopNotificationManagerCompat.h"
 #endif
 
 #include "UIParts.hpp"
@@ -20,10 +21,6 @@
 #include "scripts/ScriptInternal.hpp"
 #include "string_utils.hpp"
 #include "settings_text.hpp"
-
-#ifdef _MSC_VER
-#include "notification/DesktopNotificationManagerCompat.h"
-#endif
 
 #include "scripts/UnityEngine.CoreModule/UnityEngine/Application.hpp"
 #include "scripts/UnityEngine.CoreModule/UnityEngine/Color.hpp"

@@ -2,7 +2,7 @@
 
 #include <cstddef>
 #include <vector>
-#include "il2cpp-api-types.h"
+#include "il2cpp/il2cpp-api-types.h"
 
 namespace local
 {

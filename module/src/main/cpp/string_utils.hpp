@@ -66,8 +66,8 @@ inline string wide_u8(const wstring& wstr)
 	for (const wchar_t wc : wstr) {
 		const auto cp = static_cast<uint32_t>(wc);
 		if (cp <= 0x7f) {
-            u8 += static_cast<char>(cp);
-        } else if (cp <= 0x7ff) {
+			u8 += static_cast<char>(cp);
+		} else if (cp <= 0x7ff) {
 			u8 += static_cast<char>(0xc0 | (cp >> 6));
 			u8 += static_cast<char>(0x80 | (cp & 0x3f));
 		} else if (cp <= 0xffff) {
@@ -259,7 +259,7 @@ inline string il2cpp_u8(const il2cppstring& str)
 
 	return result;
 #else
-    const u16string u16(str.begin(), str.end());
+	const u16string u16(str.begin(), str.end());
 	return u16_u8(u16);
 #endif
 }
