@@ -9,7 +9,7 @@ struct HookArgs {
 
 void hack_thread(HookArgs *args);
 
-extern "C" void onConfigurationChanged_native(JNIEnv *env, jclass clazz, jobject activity, jobject newConfig);
+extern "C" void onLayoutChange_native(JNIEnv *env, jclass clazz, jobject activity, jobject view, jint left, jint top, jint right, jint bottom, jint oldLeft, jint oldTop, jint oldRight, jint oldBottom);
 
 #define HOOK_DEF(ret, func, ...) \
   void* addr_##func; \

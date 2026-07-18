@@ -934,12 +934,12 @@ namespace {
         updateWidth = _updateWidth;
         updateHeight = _updateHeight;
 
-        WaitForEndOfFrame(*[]() {
-            auto refreshRate = UnityEngine::RefreshRate{0, 0};
-            UnityEngine::Screen::SetResolution_Injected(updateWidth, updateHeight,
-                                                        UnityEngine::FullScreenMode::FullScreenWindow,
-                                                        &refreshRate);
+        auto refreshRate = UnityEngine::RefreshRate{0, 0};
+        UnityEngine::Screen::SetResolution_Injected(updateWidth, updateHeight,
+                                                    UnityEngine::FullScreenMode::FullScreenWindow,
+                                                    &refreshRate);
 
+        WaitForEndOfFrame(*[]() {
             WaitForEndOfFrame(*[]() {
                 const auto contentWidth = UnityEngine::Screen::width();
                 const auto contentHeight = UnityEngine::Screen::height();
@@ -1406,7 +1406,6 @@ namespace {
                 auto activity = il2cpp_symbols::get_method_pointer<jobject (*)(Il2CppObject *)>(
                         il2cppActivity->klass, "GetRawObject", 0)(il2cppActivity);
 
-                LOGD("register_callback");
                 register_callback(env, activity);
 
                 auto windowMetricsCalculatorClass = env->GetObjectClass(windowMetricsCalculator);
@@ -1462,23 +1461,16 @@ namespace {
 
                 env->DeleteLocalRef(insets);
                 env->DeleteLocalRef(insetsClass);
+                if (!isEdgeToEdgeEnabled(env, activity)) {
+                    width -= left + right;
+                    height -= top + bottom;
+                }
 
                 const auto isPortrait = width <= height;
-
-                if (!isEdgeToEdgeEnabled(env, activity)) {
-                    if (isPortrait) {
-                        width -= left + right;
-                        height -= top + bottom;
-                    } else {
-                        width -= top + bottom;
-                        height -= left + right;
-                    }
-                }
 
                 Gallop::Screen::OriginalScreenWidth(isPortrait ? height : width);
                 Gallop::Screen::OriginalScreenHeight(isPortrait ? width : height);
 
-                LOGD("ResizeWindow");
                 ResizeWindow(width, height);
             }
         }
@@ -1782,16 +1774,12 @@ HOOK_DEF(void*, NativeBridgeLoadLibraryExt_V30, const char *filename, int flag,
 }
 
 extern "C" void
-onConfigurationChanged_native(JNIEnv *env, jclass clazz, jobject activity, jobject newConfig) {
+onLayoutChange_native(JNIEnv *env, jclass clazz, jobject activity, jobject /*view*/, jint /*left*/, jint /*top*/, jint /*right*/, jint /*bottom*/, jint /*oldLeft*/, jint /*oldTop*/, jint /*oldRight*/, jint /*oldBottom*/) {
     if (!config::freeform_window) {
         return;
     }
 
     if (IsABIRequiredNativeBridge()) {
-        return;
-    }
-
-    if (newConfig == nullptr) {
         return;
     }
 
@@ -1846,23 +1834,13 @@ onConfigurationChanged_native(JNIEnv *env, jclass clazz, jobject activity, jobje
     auto right = env->GetIntField(insets, rightField);
     auto bottom = env->GetIntField(insets, bottomField);
 
-    LOGD("insets: %d, %d, %d, %d", left, top, right, bottom);
     env->DeleteLocalRef(insets);
     env->DeleteLocalRef(insetsClass);
 
-    const auto isPortrait = width <= height;
-
     if (!isEdgeToEdgeEnabled(env, activity)) {
-        if (isPortrait) {
-            width -= left + right;
-            height -= top + bottom;
-        } else {
-            width -= top + bottom;
-            height -= left + right;
-        }
+        width -= left + right;
+        height -= top + bottom;
     }
-
-    LOGD("width: %d, height: %d", width, height);
 
     auto gameSystem = Gallop::GameSystem::Instance();
 

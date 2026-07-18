@@ -1,38 +1,31 @@
 package com.kimjio.umamusumelocalify;
 
 import android.app.Activity;
-import android.content.ComponentCallbacks;
-import android.content.res.Configuration;
 import android.util.Log;
+import android.view.View;
 import android.view.WindowManager;
-
-import androidx.annotation.NonNull;
 
 @SuppressWarnings({"unused", "JavaJniMissingFunction"})
 public final class UmamusumeLocalify {
     private static final String TAG = "UmamusumeLocalify[Java]";
 
-    public static native void onConfigurationChanged_native(Activity activity, Configuration newConfig);
+    public static native void onLayoutChange_native(Activity activity, View v, int left, int top, int right, int bottom, int oldLeft, int oldTop, int oldRight, int oldBottom);
 
     public static void load() {
         Log.i(TAG, TAG + " loaded");
     }
 
     public static void registerCallback(Activity activity) {
-        activity.registerComponentCallbacks(new ComponentCallbacks() {
-            @Override
-            public void onConfigurationChanged(@NonNull Configuration newConfig) {
-                onConfigurationChanged_native(activity, newConfig);
-            }
-
-            @SuppressWarnings("deprecated")
-            @Override
-            public void onLowMemory() {
-            }
+        activity.getWindow().getDecorView().addOnLayoutChangeListener((View v, int left, int top, int right, int bottom, int oldLeft, int oldTop, int oldRight, int oldBottom) -> {
+            onLayoutChange_native(activity, v, left, top, right, bottom, oldLeft, oldTop, oldRight, oldBottom);
         });
     }
 
     public static boolean isEdgeToEdgeEnabled(Activity activity) {
+        if (activity.getApplicationInfo().targetSdkVersion < 35) {
+            return false;
+        }
+
         WindowManager.LayoutParams attributes = activity.getWindow().getAttributes();
         return attributes.layoutInDisplayCutoutMode != WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_NEVER;
     }

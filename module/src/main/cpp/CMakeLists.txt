@@ -40,8 +40,6 @@ list(FILTER PROJECT_SOURCES EXCLUDE REGEX "^httplib/.*")
 list(FILTER PROJECT_SOURCES EXCLUDE REGEX "^rapidjson/.*")
 list(FILTER PROJECT_SOURCES EXCLUDE REGEX "^msgpack11/.*")
 
-list(FILTER PROJECT_SOURCES EXCLUDE REGEX "^_il2cpp_hook\\.cpp$")
-
 include_directories(${CMAKE_CURRENT_LIST_DIR})
 include_directories(${CMAKE_CURRENT_LIST_DIR}/config)
 include_directories(${CMAKE_CURRENT_LIST_DIR}/scripts)

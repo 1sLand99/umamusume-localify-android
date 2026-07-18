@@ -22,7 +22,9 @@ namespace
 
 	Il2CppMethodPointer SetResolution_Injected_addr = nullptr;
 
-	Il2CppMethodPointer SetResolution_addr = nullptr;
+    Il2CppMethodPointer SetResolution_addr = nullptr;
+
+    Il2CppMethodPointer get_safeArea_Injected_addr = nullptr;
 }
 
 static void RequestOrientation_hook(UnityEngine::ScreenOrientation orientation)
@@ -95,7 +97,8 @@ static void InitAddress()
 	RequestOrientation_addr = il2cpp_resolve_icall("UnityEngine.Screen::RequestOrientation");
     SetOrientationEnabled_addr = il2cpp_resolve_icall("UnityEngine.Screen::SetOrientationEnabled");
 	SetResolution_Injected_addr = il2cpp_resolve_icall("UnityEngine.Screen::SetResolution_Injected");
-	SetResolution_addr = il2cpp_resolve_icall("UnityEngine.Screen::SetResolution");
+    SetResolution_addr = il2cpp_resolve_icall("UnityEngine.Screen::SetResolution");
+    get_safeArea_Injected_addr = il2cpp_resolve_icall("UnityEngine.Screen::get_safeArea_Injected");
 }
 
 static void HookMethods()
@@ -140,6 +143,13 @@ namespace UnityEngine
 		reinterpret_cast<void (*)(Resolution*)>(get_currentResolution_Injected_addr)(&resolution);
 		return resolution;
 	}
+
+    Rect Screen::safeArea()
+    {
+        Rect rect;
+        reinterpret_cast<void (*)(Rect*)>(get_safeArea_Injected_addr)(&rect);
+        return rect;
+    }
 
     void Screen::SetOrientationEnabled(EnabledOrientation orient, bool enabled)
     {

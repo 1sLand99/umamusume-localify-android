@@ -130,7 +130,8 @@ void dex_load_and_invoke(
     find_method(m_load_class, c_class_loader, "loadClass",
                 "(Ljava/lang/String;)Ljava/lang/Class;");
 
-    auto windowMetricsCalculatorClassName = new_string("androidx.window.layout.WindowMetricsCalculatorCompat");
+    auto windowMetricsCalculatorClassName = new_string(
+            "androidx.window.layout.WindowMetricsCalculatorCompat");
     auto windowMetricsCalculatorClass = static_cast<jclass>(env->CallObjectMethod(
             o_dex_class_loader,
             m_load_class,
@@ -161,9 +162,9 @@ void dex_load_and_invoke(
     env->DeleteLocalRef(localify_class_local);
 
     std::vector<JNINativeMethod> methods = {
-            {.name = "onConfigurationChanged_native",
-                .signature = "(Landroid/app/Activity;Landroid/content/res/Configuration;)V",
-                .fnPtr = reinterpret_cast<void *>(onConfigurationChanged_native)}
+            {.name = "onLayoutChange_native",
+                    .signature = "(Landroid/app/Activity;Landroid/view/View;IIIIIIII)V",
+                    .fnPtr = reinterpret_cast<void *>(onLayoutChange_native)}
     };
 
     env->RegisterNatives(localify_class, methods.data(), static_cast<jint>(methods.size()));
@@ -222,7 +223,8 @@ void dex_load_and_invoke(
 }
 
 void register_callback(JNIEnv *env, jobject activity) {
-    find_static_method(m_registerCallback, localify_class, "registerCallback", "(Landroid/app/Activity;)V");
+    find_static_method(m_registerCallback, localify_class, "registerCallback",
+                       "(Landroid/app/Activity;)V");
 
     env->CallStaticVoidMethod(
             localify_class,
@@ -274,7 +276,8 @@ void register_callback(JNIEnv *env, jobject activity) {
 }
 
 bool isEdgeToEdgeEnabled(JNIEnv *env, jobject activity) {
-    find_static_method(m_isEdgeToEdgeEnabled, localify_class, "isEdgeToEdgeEnabled", "(Landroid/app/Activity;)Z");
+    find_static_method(m_isEdgeToEdgeEnabled, localify_class, "isEdgeToEdgeEnabled",
+                       "(Landroid/app/Activity;)Z");
     return env->CallStaticBooleanMethod(
             localify_class,
             m_isEdgeToEdgeEnabled,
@@ -286,14 +289,14 @@ void setRequestedOrientation(JNIEnv *env, jobject activity) {
     auto activityClass = env->GetObjectClass(activity);
     auto activityInfoClass = env->FindClass("android/content/pm/ActivityInfo");
     auto SCREEN_ORIENTATION_FieldID = env->GetStaticFieldID(activityInfoClass,
-                                                                "SCREEN_ORIENTATION_FULL_USER",
-                                                                "I");
+                                                            "SCREEN_ORIENTATION_FULL_USER",
+                                                            "I");
     const auto SCREEN_ORIENTATION = env->GetStaticIntField(activityInfoClass,
                                                            SCREEN_ORIENTATION_FieldID);
 
     auto setRequestedOrientation = env->GetMethodID(activityClass,
-                                                         "setRequestedOrientation",
-                                                         "(I)V");
+                                                    "setRequestedOrientation",
+                                                    "(I)V");
 
     env->CallVoidMethod(activity, setRequestedOrientation, SCREEN_ORIENTATION);
     env->DeleteLocalRef(activityInfoClass);

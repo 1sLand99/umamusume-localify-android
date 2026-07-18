@@ -139,7 +139,6 @@ androidComponents {
                         workingDir "${layout.buildDirectory.asFile.get()}/intermediates/javac/$variantLowered"
                         def d8Command = ["$sdkDir/build-tools/$buildToolVersion/d8${System.properties['os.name'].toLowerCase().contains('windows'.toLowerCase()) ? ".bat" : ''}"]
                         d8Command.addAll(classFiles)
-                        d8Command.add("--no-desugaring")
                         d8Command.add("--min-api")
                         d8Command.add(minSdkVersion.apiLevel.toString())
                         commandLine d8Command
