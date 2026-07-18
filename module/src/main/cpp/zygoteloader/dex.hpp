@@ -15,9 +15,9 @@ void dex_load_and_invoke(
 
 void register_callback(JNIEnv *env, jobject activity);
 
-bool isEdgeToEdgeEnabled(JNIEnv *env, jobject activity);
+jobject getCaptionBarInsets(JNIEnv *env, jobject activity);
 
-void setRequestedOrientation(JNIEnv *env, jobject activity);
+bool isEdgeToEdgeEnabled(JNIEnv *env, jobject activity);
 
 #ifdef __cplusplus
 };

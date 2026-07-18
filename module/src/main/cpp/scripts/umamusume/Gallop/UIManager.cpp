@@ -17,10 +17,6 @@
 #include "game.hpp"
 #include "config/config.hpp"
 
-#ifdef __ANDROID__
-#include "zygoteloader/dex.hpp"
-#endif
-
 #include <algorithm>
 
 namespace

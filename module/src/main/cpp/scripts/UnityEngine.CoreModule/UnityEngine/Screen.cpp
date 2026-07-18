@@ -2,7 +2,13 @@
 #include "../../ScriptInternal.hpp"
 #include "Screen.hpp"
 
+#ifdef _MSC_VER
 #include "scripts/umamusume/Gallop/StandaloneWindowResize.hpp"
+#endif
+
+#ifdef __ANDROID__
+#include "zygoteloader/dex.hpp"
+#endif
 
 #include "config/config.hpp"
 
@@ -46,7 +52,7 @@ static void RequestOrientation_hook(UnityEngine::ScreenOrientation orientation)
 	}
 }
 
-void SetResolution_Injected_hook(int width, int height, int fullscreenMode, UnityEngine::RefreshRate* perferredRefreshRate)
+static void SetResolution_Injected_hook(int width, int height, int fullscreenMode, UnityEngine::RefreshRate* perferredRefreshRate)
 {
 #ifdef _MSC_VER
 	if (width < 72)
@@ -88,6 +94,53 @@ void SetResolution_Injected_hook(int width, int height, int fullscreenMode, Unit
 	reinterpret_cast<decltype(SetResolution_Injected_hook)*>(SetResolution_Injected_addr)(width, height, fullscreenMode, perferredRefreshRate);
 }
 
+static void get_safeArea_Injected_hook(Rect* safeArea)
+{
+	reinterpret_cast<decltype(get_safeArea_Injected_hook)*>(get_safeArea_Injected_addr)(safeArea);
+
+#ifdef __ANDROID__
+	JavaVM *javaVM;
+	jsize numVMs = 0;
+	JNI_GetCreatedJavaVMs(&javaVM, 1, &numVMs);
+
+	JNIEnv *env;
+	javaVM->GetEnv(reinterpret_cast<void **>(&env), JNI_VERSION_1_6);
+	if (env) {
+		auto get_Activity = il2cpp_symbols::get_method_pointer<Il2CppObject *(*)()>(
+				"UnityEngine.AndroidJNIModule.dll", "UnityEngine.Android", "AndroidApp",
+				"get_Activity", 0);
+
+		if (!get_Activity) {
+			get_Activity = il2cpp_symbols::get_method_pointer<Il2CppObject *(*)()>(
+					"UnityEngine.AndroidJNIModule.dll", "UnityEngine.Android", "Permission",
+					"GetActivity", 0);
+		}
+
+		auto il2cppActivity = get_Activity();
+		auto activity = il2cpp_symbols::get_method_pointer<jobject (*)(Il2CppObject *)>(
+				il2cppActivity->klass, "GetRawObject", 0)(il2cppActivity);
+
+		auto insets = getCaptionBarInsets(env, activity);
+		auto insetsClass = env->GetObjectClass(insets);
+		auto leftField = env->GetFieldID(insetsClass, "left", "I");
+		auto topField = env->GetFieldID(insetsClass, "top", "I");
+		auto rightField = env->GetFieldID(insetsClass, "right", "I");
+		auto bottomField = env->GetFieldID(insetsClass, "bottom", "I");
+
+		auto left = env->GetIntField(insets, leftField);
+		auto top = env->GetIntField(insets, topField);
+		auto right = env->GetIntField(insets, rightField);
+		auto bottom = env->GetIntField(insets, bottomField);
+
+		env->DeleteLocalRef(insets);
+		env->DeleteLocalRef(insetsClass);
+
+		safeArea->width -= static_cast<float>(left + right);
+		safeArea->height -= static_cast<float>(top + bottom);
+	}
+#endif
+}
+
 static void InitAddress()
 {
 	get_width_addr = il2cpp_resolve_icall("UnityEngine.Screen::get_width");
@@ -106,6 +159,7 @@ static void HookMethods()
 	if (config::freeform_window)
 	{
 		il2cpp_add_internal_call("UnityEngine.Screen::RequestOrientation", reinterpret_cast<Il2CppMethodPointer>(RequestOrientation_hook));
+		il2cpp_add_internal_call("UnityEngine.Screen::get_safeArea_Injected", reinterpret_cast<Il2CppMethodPointer>(get_safeArea_Injected_hook));
 	}
 
 	if (config::unlock_size || config::freeform_window)
@@ -147,7 +201,7 @@ namespace UnityEngine
     Rect Screen::safeArea()
     {
         Rect rect;
-        reinterpret_cast<void (*)(Rect*)>(get_safeArea_Injected_addr)(&rect);
+		get_safeArea_Injected_hook(&rect);
         return rect;
     }
 

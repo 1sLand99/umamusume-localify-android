@@ -275,6 +275,16 @@ void register_callback(JNIEnv *env, jobject activity) {
     }
 }
 
+jobject getCaptionBarInsets(JNIEnv *env, jobject activity) {
+    find_static_method(m_getCaptionBarInsets, localify_class, "getCaptionBarInsets",
+                       "(Landroid/app/Activity;)Landroidx/core/graphics/Insets;");
+    return env->CallStaticObjectMethod(
+            localify_class,
+            m_getCaptionBarInsets,
+            activity
+    );
+}
+
 bool isEdgeToEdgeEnabled(JNIEnv *env, jobject activity) {
     find_static_method(m_isEdgeToEdgeEnabled, localify_class, "isEdgeToEdgeEnabled",
                        "(Landroid/app/Activity;)Z");
@@ -283,24 +293,6 @@ bool isEdgeToEdgeEnabled(JNIEnv *env, jobject activity) {
             m_isEdgeToEdgeEnabled,
             activity
     );
-}
-
-void setRequestedOrientation(JNIEnv *env, jobject activity) {
-    auto activityClass = env->GetObjectClass(activity);
-    auto activityInfoClass = env->FindClass("android/content/pm/ActivityInfo");
-    auto SCREEN_ORIENTATION_FieldID = env->GetStaticFieldID(activityInfoClass,
-                                                            "SCREEN_ORIENTATION_FULL_USER",
-                                                            "I");
-    const auto SCREEN_ORIENTATION = env->GetStaticIntField(activityInfoClass,
-                                                           SCREEN_ORIENTATION_FieldID);
-
-    auto setRequestedOrientation = env->GetMethodID(activityClass,
-                                                    "setRequestedOrientation",
-                                                    "(I)V");
-
-    env->CallVoidMethod(activity, setRequestedOrientation, SCREEN_ORIENTATION);
-    env->DeleteLocalRef(activityInfoClass);
-    env->DeleteLocalRef(activityClass);
 }
 
 #ifdef __cplusplus
