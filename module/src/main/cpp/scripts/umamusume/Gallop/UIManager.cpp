@@ -178,7 +178,7 @@ static void ChangeResizeUIForPC_hook(Il2CppObject* self, int width, int height)
     ChangeResizeUI();
 }
 
-static void OnPushBandUIButton_hook(Il2CppObject* self, uint64_t buttonType)
+static void OnPushBandUIButton_hook(Il2CppObject* self, int buttonType)
 {
 	// no-op
 }
@@ -504,7 +504,7 @@ namespace Gallop
 	{
 		if (ShowNotification2_addr)
 		{
-			reinterpret_cast<void (*)(Il2CppObject*, Il2CppString*, uint64_t)>(ShowNotification2_addr)(instance, text, 0);
+			reinterpret_cast<void (*)(Il2CppObject*, Il2CppString*, int)>(ShowNotification2_addr)(instance, text, 0);
 			return;
 		}
 		reinterpret_cast<void (*)(Il2CppObject*, Il2CppString*)>(ShowNotification_addr)(instance, text);

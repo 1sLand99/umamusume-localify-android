@@ -242,6 +242,12 @@ namespace UnityEngine
             reinterpret_cast<void (*)(int, int, FullScreenMode, int)>(SetResolution_addr)(width, height, fullscreenMode, perferredRefreshRate->value());
             return;
         }
+
+        if (!SetResolution_Injected_addr)
+        {
+            return;
+        }
+
 		reinterpret_cast<decltype(SetResolution_Injected)*>(SetResolution_Injected_addr)(width, height, fullscreenMode, perferredRefreshRate);
 	}
 }

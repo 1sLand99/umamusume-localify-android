@@ -170,7 +170,7 @@ extern "C" {
 [[gnu::visibility("default"), maybe_unused]]
 void hook(JNIEnv *env, Resource *classesDex) {
     if (IsRunningOnNativeBridge()) {
-        LOGD("Starting on NativeBridge...");
+        LOGI("Starting on NativeBridge...");
         Game::CurrentGameRegion = Game::CheckPackageNameByDataPath();
         if (Game::CurrentGameRegion == Game::Region::UNKNOWN) {
             LOGW("Region UNKNOWN...");

@@ -287,11 +287,11 @@ namespace {
                         if (buffer) {
                             auto _drawPassField = il2cpp_class_get_field_from_name(buffer->klass,
                                                                                    "_drawPass");
-                            uint64_t *_drawPass;
+                            int *_drawPass;
                             il2cpp_field_get_value(buffer, _drawPassField, &_drawPass);
 
                             if (!_drawPass) {
-                                uint64_t defPass = 0;
+                                int defPass = 0;
                                 il2cpp_field_set_value(buffer, _drawPassField, &defPass);
                             }
 
@@ -588,7 +588,7 @@ namespace {
                     "umamusume.dll", "Gallop", "StoryManager", "get_StorySceneController",
                     IgnoreNumberOfArguments)();
             if (storySceneController) {
-                auto DisplayMode = il2cpp_symbols::get_method_pointer<uint64_t(*)(Il2CppObject *)>(
+                auto DisplayMode = il2cpp_symbols::get_method_pointer<int(*)(Il2CppObject *)>(
                         storySceneController->klass, "get_DisplayMode", 0)(storySceneController);
 
                 Gallop::StoryViewController storyViewController = il2cpp_symbols::get_method_pointer<Il2CppObject *(*)(
@@ -613,7 +613,7 @@ namespace {
                                 storySceneController);
                     }
 
-                    uint64_t drawDirection = 6;
+                    int drawDirection = 6;
 
                     if (DisplayMode == 0 || DisplayMode == 3) {
                         drawDirection = 0;
@@ -638,15 +638,15 @@ namespace {
 
                             if (lowResolutionCamera) {
                                 il2cpp_symbols::get_method_pointer<void (*)(Il2CppObject *,
-                                                                            uint64_t)>(
+                                                                            int)>(
                                         lowResolutionCamera->klass, "ChangeDirection", 1)(
                                         lowResolutionCamera, drawDirection);
                             }
                         }
                     }
 
-                    auto FrameBufferDisplayMode = il2cpp_symbols::get_method_pointer<uint64_t(*)(
-                            uint64_t)>("umamusume.dll", "Gallop", "LowResolutionCameraUtil",
+                    auto FrameBufferDisplayMode = il2cpp_symbols::get_method_pointer<int(*)(
+                            int)>("umamusume.dll", "Gallop", "LowResolutionCameraUtil",
                                        "GetDrawPass", 1)(DisplayMode);
 
                     auto FrameBuffer = il2cpp_symbols::get_method_pointer<Il2CppObject *(*)(
@@ -655,12 +655,12 @@ namespace {
 
                     if (il2cpp_symbols::get_method_pointer<Il2CppObject *(*)(Il2CppObject *)>(
                             FrameBuffer->klass, "get_ColorBuffer", 0)(FrameBuffer)) {
-                        il2cpp_symbols::get_method_pointer<void (*)(Il2CppObject *, uint64_t)>(
+                        il2cpp_symbols::get_method_pointer<void (*)(Il2CppObject *, int)>(
                                 FrameBuffer->klass, "RemakeRenderTexture", 1)(FrameBuffer,
                                                                               FrameBufferDisplayMode);
                     }
 
-                    // il2cpp_symbols::get_method_pointer<void (*)(Il2CppObject*, uint64_t)>(storySceneController->klass, "UpdateFovFactor", 1)(storySceneController, DisplayMode);
+                    // il2cpp_symbols::get_method_pointer<void (*)(Il2CppObject*, int)>(storySceneController->klass, "UpdateFovFactor", 1)(storySceneController, DisplayMode);
 
                     auto FullScreenImageRendererField = il2cpp_class_get_field_from_name(
                             scene->klass, "FullScreenImageRenderer");
@@ -1287,7 +1287,7 @@ namespace {
             il2cppstring sceneName = sceneManager.GetCurrentSceneIdName()->chars;
 
             if (sceneName == IL2CPP_STRING("Live")) {
-                auto controller = Gallop::SceneManager::Instance().GetCurrentViewController();
+                auto controller = sceneManager.GetCurrentViewController();
 
                 if (controller && controller->klass->name == "LiveViewController"s) {
                     auto director = Gallop::Live::Director::Instance();
@@ -1398,7 +1398,8 @@ namespace {
 
                 if (!get_Activity) {
                     get_Activity = il2cpp_symbols::get_method_pointer<Il2CppObject *(*)()>(
-                            "UnityEngine.AndroidJNIModule.dll", "UnityEngine.Android", "Permission",
+                            "UnityEngine.AndroidJNIModule.dll", "UnityEngine.Android",
+                            "Permission",
                             "GetActivity", 0);
                 }
 
@@ -1408,14 +1409,16 @@ namespace {
 
                 register_callback(env, activity);
 
-                auto windowMetricsCalculatorClass = env->GetObjectClass(windowMetricsCalculator);
+                auto windowMetricsCalculatorClass = env->GetObjectClass(
+                        windowMetricsCalculator);
 
                 auto computeId = env->GetMethodID(windowMetricsCalculatorClass,
                                                   "computeCurrentWindowMetrics",
                                                   "(Landroid/app/Activity;)Landroidx/window/layout/WindowMetrics;");
                 env->DeleteLocalRef(windowMetricsCalculatorClass);
 
-                auto metrics = env->CallObjectMethod(windowMetricsCalculator, computeId, activity);
+                auto metrics = env->CallObjectMethod(windowMetricsCalculator, computeId,
+                                                     activity);
 
                 auto metricsClass = env->GetObjectClass(metrics);
 
@@ -1461,6 +1464,7 @@ namespace {
 
                 env->DeleteLocalRef(insets);
                 env->DeleteLocalRef(insetsClass);
+
                 if (!isEdgeToEdgeEnabled(env, activity)) {
                     width -= left + right;
                     height -= top + bottom;
@@ -1677,7 +1681,6 @@ namespace {
                 }));
         il2cpp_field_static_set_value(activeSceneChangedField, action);
     }
-
 }
 
 static void *il2cpp_handle = nullptr;
@@ -1774,7 +1777,9 @@ HOOK_DEF(void*, NativeBridgeLoadLibraryExt_V30, const char *filename, int flag,
 }
 
 extern "C" void
-onLayoutChange_native(JNIEnv *env, jclass clazz, jobject activity, jobject /*view*/, jint /*left*/, jint /*top*/, jint /*right*/, jint /*bottom*/, jint /*oldLeft*/, jint /*oldTop*/, jint /*oldRight*/, jint /*oldBottom*/) {
+onLayoutChange_native(JNIEnv *env, jclass clazz, jobject activity, jobject /*view*/, jint /*left*/,
+                      jint /*top*/, jint /*right*/, jint /*bottom*/, jint /*oldLeft*/,
+                      jint /*oldTop*/, jint /*oldRight*/, jint /*oldBottom*/) {
     if (!config::freeform_window) {
         return;
     }
