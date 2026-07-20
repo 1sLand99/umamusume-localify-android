@@ -80,7 +80,7 @@ set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} ${LINKER_FLAGS}")
 set(CMAKE_MODULE_LINKER_FLAGS "${CMAKE_MODULE_LINKER_FLAGS} ${LINKER_FLAGS}")
 
 add_library(${MODULE_NAME} SHARED ${PROJECT_SOURCES})
-target_link_libraries(${MODULE_NAME} log nativehelper dobby_static msgpack11 hmac_sha256 httplib)
+target_link_libraries(${MODULE_NAME} log dobby_static msgpack11 hmac_sha256 httplib)
 
 if (NOT CMAKE_BUILD_TYPE STREQUAL "Debug")
     add_custom_command(TARGET ${MODULE_NAME} POST_BUILD

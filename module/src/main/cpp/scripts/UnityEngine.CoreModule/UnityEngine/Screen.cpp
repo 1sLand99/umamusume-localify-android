@@ -99,45 +99,56 @@ static void get_safeArea_Injected_hook(Rect* safeArea)
 	reinterpret_cast<decltype(get_safeArea_Injected_hook)*>(get_safeArea_Injected_addr)(safeArea);
 
 #ifdef __ANDROID__
-	JavaVM *javaVM;
-	jsize numVMs = 0;
-	JNI_GetCreatedJavaVMs(&javaVM, 1, &numVMs);
+    void* handle = dlopen("libnativehelper.so", RTLD_NOW);
+    if (!handle) {
+        handle = dlopen("libart.so", RTLD_NOW);
+    }
 
-	JNIEnv *env;
-	javaVM->GetEnv(reinterpret_cast<void **>(&env), JNI_VERSION_1_6);
-	if (env) {
-		auto get_Activity = il2cpp_symbols::get_method_pointer<Il2CppObject *(*)()>(
-				"UnityEngine.AndroidJNIModule.dll", "UnityEngine.Android", "AndroidApp",
-				"get_Activity", 0);
+    auto JNI_GetCreatedJavaVMs_fn = reinterpret_cast<decltype(JNI_GetCreatedJavaVMs)*>(dlsym(handle, "JNI_GetCreatedJavaVMs"));
 
-		if (!get_Activity) {
-			get_Activity = il2cpp_symbols::get_method_pointer<Il2CppObject *(*)()>(
-					"UnityEngine.AndroidJNIModule.dll", "UnityEngine.Android", "Permission",
-					"GetActivity", 0);
-		}
+    if (JNI_GetCreatedJavaVMs_fn) {
+        JavaVM *javaVM;
+        jsize numVMs = 0;
+        JNI_GetCreatedJavaVMs_fn(&javaVM, 1, &numVMs);
 
-		auto il2cppActivity = get_Activity();
-		auto activity = il2cpp_symbols::get_method_pointer<jobject (*)(Il2CppObject *)>(
-				il2cppActivity->klass, "GetRawObject", 0)(il2cppActivity);
+        JNIEnv *env;
+        javaVM->GetEnv(reinterpret_cast<void **>(&env), JNI_VERSION_1_6);
+        if (env) {
+            auto get_Activity = il2cpp_symbols::get_method_pointer<Il2CppObject *(*)()>(
+                    "UnityEngine.AndroidJNIModule.dll", "UnityEngine.Android", "AndroidApp",
+                    "get_Activity", 0);
 
-		auto insets = getCaptionBarInsets(env, activity);
-		auto insetsClass = env->GetObjectClass(insets);
-		auto leftField = env->GetFieldID(insetsClass, "left", "I");
-		auto topField = env->GetFieldID(insetsClass, "top", "I");
-		auto rightField = env->GetFieldID(insetsClass, "right", "I");
-		auto bottomField = env->GetFieldID(insetsClass, "bottom", "I");
+            if (!get_Activity) {
+                get_Activity = il2cpp_symbols::get_method_pointer<Il2CppObject *(*)()>(
+                        "UnityEngine.AndroidJNIModule.dll", "UnityEngine.Android", "Permission",
+                        "GetActivity", 0);
+            }
 
-		auto left = env->GetIntField(insets, leftField);
-		auto top = env->GetIntField(insets, topField);
-		auto right = env->GetIntField(insets, rightField);
-		auto bottom = env->GetIntField(insets, bottomField);
+            auto il2cppActivity = get_Activity();
+            auto activity = il2cpp_symbols::get_method_pointer<jobject (*)(Il2CppObject *)>(
+                    il2cppActivity->klass, "GetRawObject", 0)(il2cppActivity);
 
-		env->DeleteLocalRef(insets);
-		env->DeleteLocalRef(insetsClass);
+            auto insets = getCaptionBarInsets(env, activity);
+            auto insetsClass = env->GetObjectClass(insets);
+            auto leftField = env->GetFieldID(insetsClass, "left", "I");
+            auto topField = env->GetFieldID(insetsClass, "top", "I");
+            auto rightField = env->GetFieldID(insetsClass, "right", "I");
+            auto bottomField = env->GetFieldID(insetsClass, "bottom", "I");
 
-		safeArea->width -= static_cast<float>(left + right);
-		safeArea->height -= static_cast<float>(top + bottom);
-	}
+            auto left = env->GetIntField(insets, leftField);
+            auto top = env->GetIntField(insets, topField);
+            auto right = env->GetIntField(insets, rightField);
+            auto bottom = env->GetIntField(insets, bottomField);
+
+            env->DeleteLocalRef(insets);
+            env->DeleteLocalRef(insetsClass);
+
+            safeArea->width -= static_cast<float>(left + right);
+            safeArea->height -= static_cast<float>(top + bottom);
+        }
+    }
+
+    dlclose(handle);
 #endif
 }
 
