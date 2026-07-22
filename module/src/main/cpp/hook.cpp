@@ -1386,9 +1386,6 @@ namespace {
 
         if (config::freeform_window) {
             void *handle = dlopen("libnativehelper.so", RTLD_NOW);
-            if (!handle) {
-                handle = dlopen("libart.so", RTLD_NOW);
-            }
 
             auto JNI_GetCreatedJavaVMs_fn = reinterpret_cast<decltype(JNI_GetCreatedJavaVMs) *>(dlsym(
                     handle, "JNI_GetCreatedJavaVMs"));
@@ -1401,20 +1398,10 @@ namespace {
                 JNIEnv *env;
                 javaVM->GetEnv(reinterpret_cast<void **>(&env), JNI_VERSION_1_6);
                 if (env) {
-                    auto get_Activity = il2cpp_symbols::get_method_pointer<Il2CppObject *(*)()>(
-                            "UnityEngine.AndroidJNIModule.dll", "UnityEngine.Android", "AndroidApp",
-                            "get_Activity", 0);
-
-                    if (!get_Activity) {
-                        get_Activity = il2cpp_symbols::get_method_pointer<Il2CppObject *(*)()>(
-                                "UnityEngine.AndroidJNIModule.dll", "UnityEngine.Android",
-                                "Permission",
-                                "GetActivity", 0);
-                    }
-
-                    auto il2cppActivity = get_Activity();
-                    auto activity = il2cpp_symbols::get_method_pointer<jobject (*)(Il2CppObject *)>(
-                            il2cppActivity->klass, "GetRawObject", 0)(il2cppActivity);
+                    auto UnityPlayerClass = env->FindClass("com/unity3d/player/UnityPlayer");
+                    auto currentActivityID = env->GetStaticFieldID(UnityPlayerClass, "currentActivity", "Landroid/app/Activity;");
+                    auto activity = env->GetStaticObjectField(UnityPlayerClass, currentActivityID);
+                    env->DeleteLocalRef(UnityPlayerClass);
 
                     register_callback(env, activity);
 
@@ -1791,10 +1778,15 @@ HOOK_DEF(void*, NativeBridgeLoadLibraryExt_V30, const char *filename, int flag,
 HOOK_DEF(void*, NativeBridgeLoadLibraryExt_V26, const char *filename, int flag,
          struct native_bridge_namespace_t *ns) {
     if (string(filename).find(string("libmain.so")) != string::npos) {
-        auto *NativeBridgeError = reinterpret_cast<bool (*)()>(DobbySymbolResolver(nullptr,
-                                                                                   "_ZN7android17NativeBridgeErrorEv"));
-        auto *NativeBridgeGetError = reinterpret_cast<char *(*)()>(DobbySymbolResolver(nullptr,
-                                                                                       "_ZN7android20NativeBridgeGetErrorEv"));
+        auto nativeBridge = dlopen("libnativebridge.so", RTLD_NOW);
+        auto *NativeBridgeError = reinterpret_cast<bool (*)()>(dlsym(nativeBridge,
+                                                                     "_ZN7android17NativeBridgeErrorEv"));
+        auto *NativeBridgeGetError = reinterpret_cast<char *(*)()>(dlsym(nativeBridge,
+                                                                         "_ZN7android20NativeBridgeGetErrorEv"));
+        auto *NativeBridgeGetTrampoline = reinterpret_cast<void *(*)(void *handle, const char *name,
+                                                                     const char *shorty,
+                                                                     uint32_t len)>(dlsym(
+                nativeBridge, "_ZN7android25NativeBridgeGetTrampolineEPvPKcS2_j"));
 
         stringstream path_armV8;
         path_armV8 << "/data/data/" << Game::GetCurrentPackageName().data() << "/arm64-v8a.so";
@@ -1810,22 +1802,60 @@ HOOK_DEF(void*, NativeBridgeLoadLibraryExt_V26, const char *filename, int flag,
         }
 
         if (!path.empty()) {
-            thread load_thread([path, ns, NativeBridgeError, NativeBridgeGetError]() {
-                void *lib = orig_NativeBridgeLoadLibraryExt_V26(path.data(), RTLD_NOW, ns);
-                LOGI("%s: %p", path.data(), lib);
-                if (NativeBridgeError()) {
-                    char *error_bridge = NativeBridgeGetError();
-                    if (error_bridge) {
-                        LOGW("error_bridge: %s", error_bridge);
-                    }
+            void *lib = orig_NativeBridgeLoadLibraryExt_V26(path.data(), RTLD_NOW, ns);
+            if (NativeBridgeError()) {
+                if (auto error_bridge = NativeBridgeGetError()) {
+                    LOGW("error_bridge: %s", error_bridge);
                 }
-                DobbyDestroy(addr_NativeBridgeLoadLibraryExt_V26);
-            });
-            load_thread.detach();
+            }
+
+            auto hook = reinterpret_cast<void (*)(JNIEnv *, Resource *)>(NativeBridgeGetTrampoline(
+                    lib, "hook", "VLL", 3));
+            hook(env, classesDex);
+            DobbyDestroy(addr_NativeBridgeLoadLibraryExt_V26);
         }
     }
 
     return orig_NativeBridgeLoadLibraryExt_V26(filename, flag, ns);
+}
+
+HOOK_DEF(void*, NativeBridgeLoadLibrary_V21, const char *filename, int flag) {
+    if (string(filename).find(string("libmain.so")) != string::npos) {
+        auto nativeBridge = dlopen("libnativebridge.so", RTLD_NOW);
+        auto *NativeBridgeError = reinterpret_cast<bool (*)()>(dlsym(nativeBridge,
+                                                                     "_ZN7android17NativeBridgeErrorEv"));
+        auto *NativeBridgeGetTrampoline = reinterpret_cast<void *(*)(void *handle, const char *name,
+                                                                     const char *shorty,
+                                                                     uint32_t len)>(dlsym(
+                nativeBridge, "_ZN7android25NativeBridgeGetTrampolineEPvPKcS2_j"));
+
+        stringstream path_armV8;
+        path_armV8 << "/data/data/" << Game::GetCurrentPackageName().data() << "/arm64-v8a.so";
+        stringstream path_armV7;
+        path_armV7 << "/data/data/" << Game::GetCurrentPackageName().data() << "/armeabi-v7a.so";
+
+        string path;
+
+        if (access(path_armV8.str().data(), F_OK) != -1) {
+            path = path_armV8.str();
+        } else if (access(path_armV7.str().data(), F_OK) != -1) {
+            path = path_armV7.str();
+        }
+
+        if (!path.empty()) {
+            void *lib = orig_NativeBridgeLoadLibrary_V21(path.data(), RTLD_NOW);
+            if (NativeBridgeError()) {
+                LOGW("LoadLibrary failed");
+            }
+
+            auto hook = reinterpret_cast<void (*)(JNIEnv *, Resource *)>(NativeBridgeGetTrampoline(
+                    lib, "hook", "VLL", 3));
+            hook(env, classesDex);
+            DobbyDestroy(addr_NativeBridgeLoadLibrary_V21);
+        }
+    }
+
+    return orig_NativeBridgeLoadLibrary_V21(filename, flag);
 }
 
 extern "C" void
@@ -1967,7 +1997,7 @@ void hack_thread(HookArgs *args) {
             }
         } else if (api_level >= 26) {
             addr_NativeBridgeLoadLibraryExt_V26 = DobbySymbolResolver(nullptr,
-                                        "_ZN7android26NativeBridgeLoadLibraryExtEPKciPNS_25native_bridge_namespace_tE");
+                                                                      "_ZN7android26NativeBridgeLoadLibraryExtEPKciPNS_25native_bridge_namespace_tE");
             if (addr_NativeBridgeLoadLibraryExt_V26) {
                 LOGI("NativeBridgeLoadLibraryExt at: %p", addr_NativeBridgeLoadLibraryExt_V26);
                 DobbyHook(addr_NativeBridgeLoadLibraryExt_V26,
@@ -1976,7 +2006,7 @@ void hack_thread(HookArgs *args) {
             }
         } else {
             addr_NativeBridgeLoadLibrary_V21 = DobbySymbolResolver(nullptr,
-                                        "_ZN7android23NativeBridgeLoadLibraryEPKci");
+                                                                   "_ZN7android23NativeBridgeLoadLibraryEPKci");
             if (addr_NativeBridgeLoadLibrary_V21) {
                 LOGI("NativeBridgeLoadLibrary at: %p", addr_NativeBridgeLoadLibrary_V21);
                 DobbyHook(addr_NativeBridgeLoadLibrary_V21,

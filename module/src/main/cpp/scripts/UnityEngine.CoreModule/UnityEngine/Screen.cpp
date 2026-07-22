@@ -100,9 +100,6 @@ static void get_safeArea_Injected_hook(Rect* safeArea)
 
 #ifdef __ANDROID__
     void* handle = dlopen("libnativehelper.so", RTLD_NOW);
-    if (!handle) {
-        handle = dlopen("libart.so", RTLD_NOW);
-    }
 
     auto JNI_GetCreatedJavaVMs_fn = reinterpret_cast<decltype(JNI_GetCreatedJavaVMs)*>(dlsym(handle, "JNI_GetCreatedJavaVMs"));
 
@@ -114,19 +111,10 @@ static void get_safeArea_Injected_hook(Rect* safeArea)
         JNIEnv *env;
         javaVM->GetEnv(reinterpret_cast<void **>(&env), JNI_VERSION_1_6);
         if (env) {
-            auto get_Activity = il2cpp_symbols::get_method_pointer<Il2CppObject *(*)()>(
-                    "UnityEngine.AndroidJNIModule.dll", "UnityEngine.Android", "AndroidApp",
-                    "get_Activity", 0);
-
-            if (!get_Activity) {
-                get_Activity = il2cpp_symbols::get_method_pointer<Il2CppObject *(*)()>(
-                        "UnityEngine.AndroidJNIModule.dll", "UnityEngine.Android", "Permission",
-                        "GetActivity", 0);
-            }
-
-            auto il2cppActivity = get_Activity();
-            auto activity = il2cpp_symbols::get_method_pointer<jobject (*)(Il2CppObject *)>(
-                    il2cppActivity->klass, "GetRawObject", 0)(il2cppActivity);
+			auto UnityPlayerClass = env->FindClass("com/unity3d/player/UnityPlayer");
+			auto currentActivityID = env->GetStaticFieldID(UnityPlayerClass, "currentActivity", "Landroid/app/Activity;");
+			auto activity = env->GetStaticObjectField(UnityPlayerClass, currentActivityID);
+			env->DeleteLocalRef(UnityPlayerClass);
 
             auto insets = getCaptionBarInsets(env, activity);
             auto insetsClass = env->GetObjectClass(insets);
