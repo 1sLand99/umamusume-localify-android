@@ -3,7 +3,6 @@
 - Update sources from [Windows version](https://github.com/Kimjio/umamusume-localify)
 - Add support for English, Simplified Chinese version
 - More package support for Traditional Chinese version
-- Drop of support for below Android 12
 
 ## 2.17.0
 
