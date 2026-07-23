@@ -51,6 +51,7 @@ namespace Game {
     inline auto GamePackageNameTwnMyCard = "com.komoe.kmumamusumemc"s;
     inline auto GamePackageNameTwnMyCardAlt = "com.komoe.umamusumeofficial"s;
     inline auto GamePackageNameChn = "com.bilibili.umamusu"s;
+    inline auto GamePackageNameChnAlt = "com.tencent.tmgp.bilibili.umamusu"s;
     inline auto GamePackageNameEng = "com.cygames.umamusume"s;
 
     static bool IsPackageNameEqualsByGameRegion(const char *pkgNm, Region gameRegion) {
@@ -86,7 +87,8 @@ namespace Game {
                 }
                 break;
             case Region::CHN:
-                if (pkgNmStr == GamePackageNameChn) {
+                if (pkgNmStr == GamePackageNameChn ||
+                    pkgNmStr == GamePackageNameChnAlt) {
                     CurrentGameRegion = Region::CHN;
                     CurrentGameStore = Store::Other;
                     return true;
@@ -128,6 +130,10 @@ namespace Game {
             return GamePackageNameEng;
         }
         if (gameRegion == Region::CHN) {
+            if (isAlt) {
+                return GamePackageNameChnAlt;
+            }
+
             return GamePackageNameChn;
         }
         return "";
@@ -184,6 +190,14 @@ namespace Game {
                 "/data/data/"s
                         .append(GetPackageNameByGameRegionAndGameStore(Region::CHN,
                                                                        Store::Other)).append(
+                        "/cache").data(),
+                F_OK) == 0) {
+            return Region::CHN;
+        }
+        if (access(
+                "/data/data/"s
+                        .append(GetPackageNameByGameRegionAndGameStore(Region::CHN,
+                                                                       Store::Other, true)).append(
                         "/cache").data(),
                 F_OK) == 0) {
             return Region::CHN;
