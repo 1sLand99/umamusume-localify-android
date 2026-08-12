@@ -3,11 +3,29 @@ Android port of [umamusume-localify](https://github.com/GEEKiDoS/umamusume-local
 
 [한국어](README.ko-KR.md)
 
+## Supported versions
+
+| Region | Arch |                                      Package                                      | Unity version | Status |
+|:------:|:----:|:---------------------------------------------------------------------------------:|:-------------:|:------:|
+|  JPN   | arm  |                              jp.co.cygames.umamusume                              |  2022.3.62f2  |   ✓    |
+|  JPN   | x86  |                              jp.co.cygames.umamusume                              |  2022.3.62f2  |   ⚠️   |
+|  KOR   | arm  |                             com.kakaogames.umamusume                              |  2022.3.62f3  |   ✓    |
+|  TWN   | arm  |              com.komoe.kmumamusumegp<br>com.komoe.umamusumeofficial               |  2022.3.62f2  |   ⚠️   |
+|  ENG   | arm  |                               com.cygames.umamusume                               |  2022.3.62f2  |   ⚠️   |
+|  ENG   | x86  |                               com.cygames.umamusume                               |  2022.3.62f2  |   ?️   |
+|  CHN   | arm  |             com.bilibili.umamusu<br>com.tencent.tmgp.bilibili.umamusu             |  2020.3.49f1  |   ⚠️   |
+
+> Legend 
+> - ✓ Supported
+> - ⚠️ Not fully tested (only title screen checked)
+> - ❌ Unsupported
+> - ? Unknown
+
 ## How to use
 1. Install [Magisk](https://github.com/topjohnwu/Magisk) v24 or later and enable Zygisk
 2. (Optional, Korean version only) Install [Shamiko](https://github.com/LSPosed/LSPosed.github.io/releases) for bypass DroidX's code injection block to use Frida
-3. Install module in Magisk
-4. Put the `config.json` file in `/sdcard/android/data/jp.co.cygames.umamusume/` and the translation file referenced in `dicts`.
+3. Install module in Magisk (or KernelSU(-Next), APatch, ...)
+4. Put the `config.json` file in `/sdcard/android/data/<Your umamusume package (ex: jp.co.cygames.umamusume)>/` and the translation file referenced in `dicts`.
 
 ## Settings App
 Created an app that allows you to change settings without directly modifying the JSON file.
@@ -19,15 +37,15 @@ Working directory is `/sdcard/Android/data/jp.co.cygames.umamusume/`
 
 (Korean version is `/sdcard/Android/data/com.kakaogames.umamusume/`)
 
-## Config
-- `enableLogger` Outputs an unoverwritten string to `data.txt` (`true` / `false`, Default: `false`)
+## Config (outdated)
+- `enableLogger` Outputs an un-overwritten string to `data.txt` (`true` / `false`, Default: `false`)
 - `dumpStaticEntries` Outputs a hard-coded string to `data.txt` (`true` / `false`, Default: `false`)
   - `enableLogger` must be enabled.
 - `dumpDbEntries` Outputs DB data to `original_data/` (`true` / `false`, Default: `false`)
 - `maxFps` Max FPS settings (`-1` = Default / `0` = Unlimited / `n > 0` = Limit to n, Default: `-1`)
 - `uiAnimationScale` Change UI animation scale (0 < ~, Default: `1`)
   - Caution: Soft lock occurs when set to `0`.
-- `uiUseSystemResolution` Renders UI, live subtitles, and more at system resolution. (`true` / `false`, Default: `false`)
+- ~~`uiUseSystemResolution` Renders UI, live subtitles, and more at system resolution. (`true` / `false`, Default: `false`)~~
 - `replaceToBuiltinFont` (`replaceFont`) Use Unity builtin fonts instead of in-game fonts. (`true` / `false`, Default: `false`)
 - `replaceToCustomFont` Use custom fonts instead of in-game fonts. (`true` / `false`, Default: `false`)
 - `fontAssetBundlePath` Font asset bundle path (ex: `custom_font/GyeonggiTitle_Medium/font`)
@@ -44,8 +62,8 @@ Working directory is `/sdcard/Android/data/jp.co.cygames.umamusume/`
   - `2`: MSAA x2
   - `4`: MSAA x4
   - `8`: MSAA x8
-- `forceLandscape` Force all screens to landscape. (`true` / `false`, Default: `false`)
-- `forceLandscapeUiScale` Sets the UI scale to use for forced landscape mode. (0 < ~, Default: `1.8`)
+- ~~`forceLandscape` Force all screens to landscape. (`true` / `false`, Default: `false`)~~
+- ~~`forceLandscapeUiScale` Sets the UI scale to use for forced landscape mode. (0 < ~, Default: `1.8`)~~
 - `uiLoadingShowOrientationGuide` Set whether to display the loading guide when the screen is rotated (`true` / `false`, Default: `true`)
 - `replaceAssetsPath` Set the path to the folder containing the assets to replace the downloaded assets in the game.
   - The name of the asset file to be replaced must be the same as the hash name of the original asset file.

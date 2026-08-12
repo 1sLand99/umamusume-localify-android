@@ -26,7 +26,11 @@ namespace config
 	bool unlock_size = false;
 	float ui_scale = 1.f;
 	bool freeform_window = false;
+#ifdef _MSC_VER
 	float freeform_ui_scale_portrait = .5f;
+#else
+	float freeform_ui_scale_portrait = 1.f;
+#endif
 	float freeform_ui_scale_landscape = .5f;
 	int initial_width = -1;
 	int initial_height = -1;
@@ -90,9 +94,10 @@ namespace config
 	bool dump_msgpack = false;
 	bool dump_msgpack_request = false;
 	bool unlock_live_chara = false;
-	bool notification_tp = false;
-	bool notification_rp = false;
-	bool notification_jobs = false;
+	bool notification_tp = true;
+	bool notification_rp = true;
+	bool notification_jobs = true;
+	bool notification_idle_single_mode = true;
 	bool msgpack_notifier = false;
 	bool msgpack_notifier_request = false;
 	il2cppstring msgpack_notifier_host = IL2CPP_STRING("http://localhost:4693");
@@ -492,6 +497,8 @@ if (document.HasMember(IL2CPP_STRING(_name_)) && document[IL2CPP_STRING(_name_)]
 			GetValue("notificationRp", Bool, notification_rp);
 
 			GetValue("notificationJobs", Bool, notification_jobs);
+
+			GetValue("notificationIdleSingleMode", Bool, notification_idle_single_mode);
 
 			GetValue("taskbarShowProgressOnDownload", Bool, taskbar_show_progress_on_download);
 

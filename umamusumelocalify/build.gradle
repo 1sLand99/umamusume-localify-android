@@ -1,0 +1,40 @@
+plugins {
+    id 'com.android.application'
+}
+
+android {
+    namespace 'com.kimjio.umamusumelocalify'
+    compileSdk {
+        version = release(rootProject.ext.targetSdkVersion)
+    }
+
+    defaultConfig {
+        applicationId "com.kimjio.umamusumelocalify"
+        minSdk rootProject.ext.minSdkVersion
+        targetSdk rootProject.ext.targetSdkVersion
+        versionCode 1
+        versionName "1.0"
+    }
+
+    buildFeatures {
+        buildConfig = false
+    }
+
+    buildTypes {
+        release {
+            signingConfig signingConfigs.debug
+            minifyEnabled = true
+            //noinspection NotShrinkingResources
+            shrinkResources = false
+        }
+    }
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_21
+        targetCompatibility JavaVersion.VERSION_21
+    }
+}
+
+dependencies {
+    implementation 'androidx.media3:media3-common:1.11.0'
+    implementation 'androidx.media3:media3-session:1.11.0'
+}

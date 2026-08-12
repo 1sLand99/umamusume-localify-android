@@ -2,9 +2,12 @@ import org.apache.tools.ant.filters.FixCrLfFilter
 import org.apache.tools.ant.filters.ReplaceTokens
 
 import javax.inject.Inject
+import org.gradle.api.attributes.Attribute
 
-apply plugin: 'com.android.library'
-// apply plugin: 'kotlin-android'
+plugins {
+    id 'com.android.library'
+}
+
 apply from: file(rootProject.file('module.gradle'))
 
 interface InjectedExecOps {
@@ -15,7 +18,9 @@ interface InjectedExecOps {
 android {
     flavorDimensions += "api"
 
-    compileSdkVersion = rootProject.ext.targetSdkVersion
+    compileSdk {
+        version = release(rootProject.ext.targetSdkVersion)
+    }
     buildToolsVersion = '37.0.0'
     ndkVersion = '29.0.14206865'
     defaultConfig {
@@ -23,6 +28,13 @@ android {
         externalNativeBuild {
             cmake {
                 arguments "-DMODULE_NAME:STRING=$moduleLibraryName"
+            }
+        }
+    }
+    buildTypes {
+        release {
+            optimization {
+                enable = true
             }
         }
     }
@@ -60,6 +72,10 @@ repositories {
 dependencies {
     implementation fileTree(dir: 'libs', include: ['*.jar', '*.aar'])
     implementation 'androidx.annotation:annotation:1.10.0'
+    implementation 'androidx.core:core:1.19.0'
+    implementation 'androidx.window:window:1.5.1'
+    implementation 'androidx.media3:media3-common:1.11.0'
+    implementation 'androidx.media3:media3-session:1.11.0'
 }
 
 androidComponents {
@@ -69,11 +85,75 @@ androidComponents {
         def buildTypeCapped = variant.buildType.capitalize()
         def buildTypeLowered = variant.buildType.toLowerCase()
 
+        def runtimeJars = variant.runtimeConfiguration.incoming.artifactView {
+            attributes {
+                attribute(Attribute.of("artifactType", String), "android-classes-jar")
+            }
+        }.files
+
         def zipName = "${magiskModuleId.replace('_', '-')}-${moduleVersion}-${buildTypeLowered}.zip"
         def moduleDir = file("$outDir/module_${buildTypeLowered}")
 
-        tasks.register("prepareModuleFiles${variantCapped}", Sync) {
+        def generateDexTask = tasks.register("generateDex${variantCapped}", Exec) {
             dependsOn("assemble${variantCapped}")
+            
+            def sdkDir = androidComponents.sdkComponents.sdkDirectory.get()
+            def buildToolVersion = project.android.buildToolsVersion
+            def compileSdk = project.android.compileSdkVersion
+            def workingDirFile = file("${layout.buildDirectory.asFile.get()}/intermediates/javac/$variantLowered")
+            
+            workingDir workingDirFile
+            
+            doFirst {
+                workingDirFile.mkdirs()
+                def pgRules = file("${workingDirFile}/rules.pro")
+                pgRules.text = """
+                    -keep class com.kimjio.umamusumelocalify.** { *; }
+                    -keep class androidx.core.graphics.Insets { *; }
+                    -keep class androidx.window.layout.WindowMetrics { *; }
+                    -keep class androidx.window.layout.WindowMetricsCalculatorCompat { *; }
+                    -dontwarn androidx.core.R**
+                    -dontwarn androidx.media3.**
+                    -dontwarn com.google.errorprone.annotations.**
+                    -dontwarn com.google.j2objc.annotations.**
+                    -dontwarn javax.annotation.**
+                    -dontwarn org.checkerframework.**
+                    -dontobfuscate
+                    -dontoptimize
+                    -keep class **.R\$* { <fields>; }
+                    -ignorewarnings
+                """.stripIndent()
+            }
+
+            def rJarPath = "${sdkDir}/build-tools/${buildToolVersion}/lib/d8.jar"
+            def androidJar = file("${sdkDir}/platforms/${compileSdk}/android.jar")
+            if (!androidJar.exists()) {
+                androidJar = file("${sdkDir}/platforms/android-${compileSdk}/android.jar")
+            }
+
+            def classFiles = project.fileTree(dir: "${layout.buildDirectory.asFile.get()}/intermediates/javac/$variantLowered/compile${variantCapped}JavaWithJavac/classes", include: '**/*.class').files.collect { it.absolutePath }
+            
+            def rJarFiles = []
+            def appRJar = project(":umamusumelocalify").layout.buildDirectory.file("intermediates/compile_and_runtime_r_class_jar/${variantLowered}/process${variantCapped}Resources/R.jar").get().asFile
+            if (appRJar.exists()) {
+                rJarFiles.add(appRJar)
+            } else {
+                rJarFiles.addAll(project.fileTree(dir: "${layout.buildDirectory.asFile.get()}/intermediates", include: "**/R.jar").files)
+            }
+
+            def d8Args = ["java", "-cp", rJarPath, "com.android.tools.r8.R8",
+                          "--release", "--output", ".", "--min-api", variant.minSdk.apiLevel.toString(),
+                          "--pg-conf", "rules.pro", "--lib", androidJar.absolutePath]
+            d8Args.addAll(classFiles)
+            d8Args.addAll(rJarFiles.unique().collect { it.absolutePath })
+            d8Args.addAll(runtimeJars.files.collect { it.absolutePath })
+            
+            commandLine d8Args
+        }
+
+        tasks.register("prepareModuleFiles${variantCapped}", Sync) {
+            dependsOn(":umamusumelocalify:assemble${variantCapped}")
+            dependsOn(generateDexTask)
 
             def templatePath = "$rootDir/template/module"
 
@@ -127,23 +207,16 @@ androidComponents {
                 into 'lib'
             }
 
+            from(project(":umamusumelocalify").layout.buildDirectory.dir("outputs/apk/${buildTypeLowered}")) {
+                include "**/*.apk"
+                exclude "**/*-unsigned.apk", "**/*-unaligned.apk"
+                includeEmptyDirs = false
+                rename { "UmamusumeLocalify.apk" }
+                into "system/app/UmamusumeLocalify"
+            }
+
             from("${layout.buildDirectory.asFile.get()}/intermediates/javac/$variantLowered/") {
-                exclude "compile${buildTypeCapped}JavaWithJavac", "classes"
-                def injected = project.objects.newInstance(InjectedExecOps)
-                doFirst {
-                    def sdkDir = androidComponents.sdkComponents.sdkDirectory.get();
-                    def buildToolVersion = project.android.buildToolsVersion;
-                    def classesDir = file("${layout.buildDirectory.asFile.get()}/intermediates/javac/$variantLowered/compile${variantCapped}JavaWithJavac/classes")
-                    def classFiles = project.fileTree(dir: classesDir, include: '**/*.class').files.collect { it.absolutePath }
-                    injected.execOps.exec {
-                        workingDir "${layout.buildDirectory.asFile.get()}/intermediates/javac/$variantLowered"
-                        def d8Command = ["$sdkDir/build-tools/$buildToolVersion/d8${System.properties['os.name'].toLowerCase().contains('windows'.toLowerCase()) ? ".bat" : ''}"]
-                        d8Command.addAll(classFiles)
-                        d8Command.add("--min-api")
-                        d8Command.add(minSdkVersion.apiLevel.toString())
-                        commandLine d8Command
-                    }
-                }
+                include "classes.dex"
                 into ''
             }
         }
@@ -181,16 +254,19 @@ androidComponents {
 
         tasks.register("flashAndReboot${variantCapped}", Exec) {
             dependsOn("flash${variantCapped}")
+            ignoreExitValue = true
             commandLine androidComponents.sdkComponents.adb.get(), "shell", "reboot", "now"
         }
 
         tasks.register("flashKSUAndReboot${variantCapped}", Exec) {
             dependsOn("flashKSU${variantCapped}")
+            ignoreExitValue = true
             commandLine androidComponents.sdkComponents.adb.get(), "shell", "reboot", "now"
         }
 
         tasks.register("flashAPAndReboot${variantCapped}", Exec) {
             dependsOn("flashAP${variantCapped}")
+            ignoreExitValue = true
             commandLine androidComponents.sdkComponents.adb.get(), "shell", "reboot", "now"
         }
 

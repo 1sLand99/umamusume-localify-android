@@ -17,8 +17,6 @@
         <package android:name="com.cygames.umamusume" />
         <!-- Komoe -->
         <package android:name="com.komoe.kmumamusumegp" />
-        <!-- Komoe MyCard legacy -->
-        <package android:name="com.komoe.kmumamusumemc" />
         <!-- Komoe MyCard -->
         <package android:name="com.komoe.umamusumeofficial" />
         <!-- TODO Package by region -->

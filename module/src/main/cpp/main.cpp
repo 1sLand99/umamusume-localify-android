@@ -60,9 +60,9 @@ void handleFileRequest(int client) {
 
 class Module : public zygisk::ModuleBase {
 public:
-    void onLoad(Api *api, JNIEnv *env) override {
-        this->api = api;
-        this->env = env;
+    void onLoad(Api *_api, JNIEnv *_env) override {
+        this->api = _api;
+        this->env = _env;
 
         if (!isInitialized()) {
             initialize();
@@ -113,7 +113,7 @@ public:
             int ret;
             pthread_t t;
 
-            HookArgs* args = reinterpret_cast<HookArgs*>(malloc(sizeof(HookArgs)));
+            auto args = reinterpret_cast<HookArgs*>(malloc(sizeof(HookArgs)));
             args->env = env;
             args->classesDex = classesDex;
             ret = pthread_create(&t, nullptr, reinterpret_cast<void *(*)(void *)>(hack_thread), args);
@@ -137,7 +137,7 @@ private:
     JNIEnv *env{};
     Api *api{};
     Resource *classesDex{};
-    bool enable_hack;
+    bool enable_hack = false;
 
     bool isInitialized() {
         const int remote = api->connectCompanion();
@@ -187,7 +187,7 @@ void hook(JNIEnv *env, Resource *classesDex) {
         int ret;
         pthread_t t;
 
-        HookArgs* args = reinterpret_cast<HookArgs*>(malloc(sizeof(HookArgs)));
+        auto args = reinterpret_cast<HookArgs*>(malloc(sizeof(HookArgs)));
         args->env = env;
         args->classesDex = classesDex;
         ret = pthread_create(&t, nullptr,

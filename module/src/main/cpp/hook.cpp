@@ -27,6 +27,8 @@
 
 #include "msgpack/msgpack_modify.hpp"
 
+#include "notification/MediaNotificationManager.hpp"
+
 #include "localify/NotificationManager.hpp"
 #include "localify/UIParts.hpp"
 #include "localify/LiveUtils.hpp"
@@ -53,6 +55,7 @@
 #include "scripts/umamusume/Gallop/RaceCameraManager.hpp"
 #include "scripts/umamusume/Gallop/Localize.hpp"
 #include "scripts/umamusume/Gallop/LowResolutionCameraUtil.hpp"
+#include "scripts/umamusume/Gallop/LiveViewController.hpp"
 #include "scripts/umamusume/Gallop/Live/Director.hpp"
 
 #include "scripts/Plugins/AnimateToUnity/AnRootManager.hpp"
@@ -1297,6 +1300,10 @@ namespace {
                         auto LiveTotalTime = il2cpp_symbols::get_method_pointer<float (*)(
                                 Il2CppObject *)>(director, "get_LiveTotalTime", 0)(director);
 
+                        updateMediaProgress(GetJNIEnv(), GetActivity(),
+                                            static_cast<int64_t>(LiveCurrentTime * 1000),
+                                            static_cast<int64_t>(LiveTotalTime * 1000));
+
                         auto sliderCommon = Localify::UIParts::GetOptionSlider("live_slider");
 
                         auto textCommon = Localify::UIParts::GetTextCommon("live_slider");
@@ -1356,6 +1363,104 @@ namespace {
                 }
             }
 
+            if (sceneName == IL2CPP_STRING("Home")) {
+                bool hasSetList = false;
+
+                auto hubViewController = GetCurrentHubViewChildController();
+
+                if (hubViewController && hubViewController->klass->name == "HomeViewController"s) {
+                    auto topUi = il2cpp_class_get_method_from_name_type<Il2CppObject *(*)(
+                            Il2CppObject *, int)>(hubViewController->klass, "GetTopUI",
+                                                  1)->methodPointer(hubViewController, 10);
+                    if (topUi) {
+                        auto get_TempSetListPlayingData = il2cpp_class_get_method_from_name_type<Il2CppObject *(*)(
+                                Il2CppObject *)>(topUi->klass, "get_TempSetListPlayingData", 0);
+                        if (get_TempSetListPlayingData) {
+                            auto data = get_TempSetListPlayingData->methodPointer(topUi);
+
+                            auto IsPlayingField = il2cpp_class_get_field_from_name(data->klass,
+                                                                                   "IsPlaying");
+                            bool IsPlaying;
+                            il2cpp_field_get_value(data, IsPlayingField, &IsPlaying);
+
+                            hasSetList = IsPlaying;
+
+                            if (IsPlaying) {
+                                updateMediaPlayWhenReady(GetJNIEnv(), GetActivity(), true);
+
+                                auto SetListIndexField = il2cpp_class_get_field_from_name(
+                                        data->klass, "SetListIndex");
+                                int SetListIndex;
+                                il2cpp_field_get_value(data, SetListIndexField, &SetListIndex);
+
+                                int MusicListCount = il2cpp_class_get_method_from_name_type<int (*)(
+                                        Il2CppObject *)>(data->klass, "GetMusicListCount",
+                                                         0)->methodPointer(data);
+
+                                updateMediaNavigationButtons(GetJNIEnv(), GetActivity(),
+                                                             SetListIndex < MusicListCount - 1,
+                                                             SetListIndex > 0);
+
+                                auto musicData = il2cpp_class_get_method_from_name_type<Il2CppObject *(*)(
+                                        Il2CppObject *)>(data->klass, "GetMasterSetListMusicData",
+                                                         0)->methodPointer(data);
+
+                                auto MusicIdField = il2cpp_class_get_field_from_name(
+                                        musicData->klass, "MusicId");
+                                int MusicId;
+                                il2cpp_field_get_value(musicData, MusicIdField, &MusicId);
+
+                                MediaNotificationManager::UpdateMetadata(MusicId);
+                            }
+                        }
+                    }
+                }
+
+                if (!hasSetList) {
+                    auto workDataManager = GetSingletonInstance(
+                            il2cpp_symbols::get_class("umamusume.dll", "Gallop",
+                                                      "WorkDataManager"));
+
+                    auto workJukeboxData = il2cpp_class_get_method_from_name_type<Il2CppObject *(*)(
+                            Il2CppObject *)>(workDataManager->klass, "get_JukeboxData",
+                                             0)->methodPointer(workDataManager);
+                    auto currentBgmMusicId = il2cpp_class_get_method_from_name_type<int (*)(
+                            Il2CppObject *)>(workJukeboxData->klass, "GetCurrentBgmMusicId",
+                                             0)->methodPointer(workJukeboxData);
+
+                    MediaNotificationManager::UpdateMetadata(currentBgmMusicId);
+
+                    if (currentBgmMusicId) {
+                        updateMediaPlayWhenReady(GetJNIEnv(), GetActivity(), true);
+                    } else {
+                        updateMediaPlayWhenReady(GetJNIEnv(), GetActivity(), false);
+                    }
+                }
+            }
+
+            if (sceneName == IL2CPP_STRING("Live")) {
+                auto controller = Gallop::SceneManager::Instance().GetCurrentViewController();
+
+                if (controller && controller->klass->name == "LiveViewController"s) {
+                    auto _stateField = il2cpp_class_get_field_from_name(controller->klass,
+                                                                        "_state");
+                    Gallop::LiveViewController::LiveState state;
+                    il2cpp_field_get_value(controller, _stateField, &state);
+
+                    bool IsStarted = false;
+                    if (auto director = Gallop::Live::Director::Instance())
+                    {
+                        IsStarted = director.IsStarted();
+                    }
+
+                    if (IsStarted && state == Gallop::LiveViewController::LiveState::Play) {
+                        updateMediaPlayWhenReady(GetJNIEnv(), GetActivity(), true);
+                    } else {
+                        updateMediaPlayWhenReady(GetJNIEnv(), GetActivity(), false);
+                    }
+                }
+            }
+
             StartTickFrame();
         } catch (const Il2CppExceptionWrapper &ex) {
             LOGW("TickFrame error: %s", il2cpp_u8(ex.ex->message->chars).data());
@@ -1384,98 +1489,96 @@ namespace {
             Gallop::Localize::DumpAllEntries();
         }
 
+        auto env = GetJNIEnv();
+        auto activity = GetActivity();
+
         if (config::freeform_window) {
-            void *handle = dlopen("libnativehelper.so", RTLD_NOW);
+            register_callback(env, activity);
 
-            auto JNI_GetCreatedJavaVMs_fn = reinterpret_cast<decltype(JNI_GetCreatedJavaVMs) *>(dlsym(
-                    handle, "JNI_GetCreatedJavaVMs"));
+            auto windowMetricsCalculatorClass = env->GetObjectClass(
+                    windowMetricsCalculator);
 
-            if (JNI_GetCreatedJavaVMs_fn) {
-                JavaVM *javaVM;
-                jsize numVMs = 0;
-                JNI_GetCreatedJavaVMs_fn(&javaVM, 1, &numVMs);
+            auto computeId = env->GetMethodID(windowMetricsCalculatorClass,
+                                              "computeCurrentWindowMetrics",
+                                              "(Landroid/app/Activity;)Landroidx/window/layout/WindowMetrics;");
+            env->DeleteLocalRef(windowMetricsCalculatorClass);
 
-                JNIEnv *env;
-                javaVM->GetEnv(reinterpret_cast<void **>(&env), JNI_VERSION_1_6);
-                if (env) {
-                    auto UnityPlayerClass = env->FindClass("com/unity3d/player/UnityPlayer");
-                    auto currentActivityID = env->GetStaticFieldID(UnityPlayerClass, "currentActivity", "Landroid/app/Activity;");
-                    auto activity = env->GetStaticObjectField(UnityPlayerClass, currentActivityID);
-                    env->DeleteLocalRef(UnityPlayerClass);
+            auto metrics = env->CallObjectMethod(windowMetricsCalculator, computeId,
+                                                 activity);
+            auto metricsClass = env->GetObjectClass(metrics);
 
-                    register_callback(env, activity);
+            auto getRectId = env->GetMethodID(metricsClass, "getBounds",
+                                              "()Landroid/graphics/Rect;");
+            auto rect = env->CallObjectMethod(metrics, getRectId);
 
-                    auto windowMetricsCalculatorClass = env->GetObjectClass(
-                            windowMetricsCalculator);
+            env->DeleteLocalRef(metrics);
+            env->DeleteLocalRef(metricsClass);
 
-                    auto computeId = env->GetMethodID(windowMetricsCalculatorClass,
-                                                      "computeCurrentWindowMetrics",
-                                                      "(Landroid/app/Activity;)Landroidx/window/layout/WindowMetrics;");
-                    env->DeleteLocalRef(windowMetricsCalculatorClass);
+            auto rectClass = env->GetObjectClass(rect);
 
-                    auto metrics = env->CallObjectMethod(windowMetricsCalculator, computeId,
-                                                         activity);
+            auto widthId = env->GetMethodID(rectClass, "width", "()I");
+            jint width = env->CallIntMethod(rect, widthId);
 
-                    auto metricsClass = env->GetObjectClass(metrics);
+            auto heightId = env->GetMethodID(rectClass, "height", "()I");
+            jint height = env->CallIntMethod(rect, heightId);
 
-                    auto getRectId = env->GetMethodID(metricsClass, "getBounds",
-                                                      "()Landroid/graphics/Rect;");
-                    auto rect = env->CallObjectMethod(metrics, getRectId);
+            env->DeleteLocalRef(rect);
+            env->DeleteLocalRef(rectClass);
 
-                    auto rectClass = env->GetObjectClass(rect);
+            auto insets = getDisplayCutoutInsets(env, activity);
+            auto insetsClass = env->GetObjectClass(insets);
+            auto leftField = env->GetFieldID(insetsClass, "left", "I");
+            auto topField = env->GetFieldID(insetsClass, "top", "I");
+            auto rightField = env->GetFieldID(insetsClass, "right", "I");
+            auto bottomField = env->GetFieldID(insetsClass, "bottom", "I");
 
-                    auto widthId = env->GetMethodID(rectClass, "width", "()I");
-                    jint width = env->CallIntMethod(rect, widthId);
+            auto left = env->GetIntField(insets, leftField);
+            auto top = env->GetIntField(insets, topField);
+            auto right = env->GetIntField(insets, rightField);
+            auto bottom = env->GetIntField(insets, bottomField);
 
-                    auto heightId = env->GetMethodID(rectClass, "height", "()I");
-                    jint height = env->CallIntMethod(rect, heightId);
+            env->DeleteLocalRef(insets);
 
-                    env->DeleteLocalRef(rect);
-                    env->DeleteLocalRef(rectClass);
+            insets = getCaptionBarInsets(env, activity);
 
-                    auto getWindowInsetsId = env->GetMethodID(metricsClass, "getWindowInsets",
-                                                              "()Landroidx/core/view/WindowInsetsCompat;");
-                    auto windowInsets = env->CallObjectMethod(metrics, getWindowInsetsId);
+            auto captionBarLeft = env->GetIntField(insets, leftField);
+            auto captionBarTop = env->GetIntField(insets, topField);
+            auto captionBarRight = env->GetIntField(insets, rightField);
+            auto captionBarBottom = env->GetIntField(insets, bottomField);
 
-                    env->DeleteLocalRef(metrics);
-                    env->DeleteLocalRef(metricsClass);
+            env->DeleteLocalRef(insets);
 
-                    auto windowInsetsClass = env->GetObjectClass(windowInsets);
-                    auto getInsetsId = env->GetMethodID(windowInsetsClass, "getInsets",
-                                                        "(I)Landroidx/core/graphics/Insets;");
-                    auto insets = env->CallObjectMethod(windowInsets, getInsetsId, 1 << 7);
-                    env->DeleteLocalRef(windowInsets);
-                    env->DeleteLocalRef(windowInsetsClass);
+            insets = getCaptionBarInsetsIgnoringVisibility(env, activity);
 
-                    auto insetsClass = env->GetObjectClass(insets);
-                    auto leftField = env->GetFieldID(insetsClass, "left", "I");
-                    auto topField = env->GetFieldID(insetsClass, "top", "I");
-                    auto rightField = env->GetFieldID(insetsClass, "right", "I");
-                    auto bottomField = env->GetFieldID(insetsClass, "bottom", "I");
+            auto captionBarIgnoringVisibilityLeft = env->GetIntField(insets, leftField);
+            auto captionBarIgnoringVisibilityTop = env->GetIntField(insets, topField);
+            auto captionBarIgnoringVisibilityRight = env->GetIntField(insets, rightField);
+            auto captionBarIgnoringVisibilityBottom = env->GetIntField(insets, bottomField);
 
-                    auto left = env->GetIntField(insets, leftField);
-                    auto top = env->GetIntField(insets, topField);
-                    auto right = env->GetIntField(insets, rightField);
-                    auto bottom = env->GetIntField(insets, bottomField);
+            env->DeleteLocalRef(insets);
+            env->DeleteLocalRef(insetsClass);
 
-                    env->DeleteLocalRef(insets);
-                    env->DeleteLocalRef(insetsClass);
-
-                    if (!isEdgeToEdgeEnabled(env, activity)) {
-                        width -= left + right;
-                        height -= top + bottom;
-                    }
-
-                    const auto isPortrait = width <= height;
-
-                    Gallop::Screen::OriginalScreenWidth(isPortrait ? height : width);
-                    Gallop::Screen::OriginalScreenHeight(isPortrait ? width : height);
-
-                    ResizeWindow(width, height);
-                }
-
-                dlclose(handle);
+            if (captionBarIgnoringVisibilityLeft + captionBarIgnoringVisibilityRight > 0 &&
+                captionBarLeft + captionBarRight == 0) {
+                width -= captionBarIgnoringVisibilityLeft + captionBarIgnoringVisibilityRight;
             }
+
+            if (captionBarIgnoringVisibilityTop + captionBarIgnoringVisibilityBottom > 0 &&
+                captionBarTop + captionBarBottom == 0) {
+                height -= captionBarIgnoringVisibilityTop + captionBarIgnoringVisibilityBottom;
+            }
+
+            if (!isEdgeToEdgeEnabled(env, activity)) {
+                width -= left + right;
+                height -= top + bottom;
+            }
+
+            const auto isPortrait = width <= height;
+
+            Gallop::Screen::OriginalScreenWidth(isPortrait ? height : width);
+            Gallop::Screen::OriginalScreenHeight(isPortrait ? width : height);
+
+            ResizeWindow(width, height);
         }
 
         if (!config::unlock_live_chara) {
@@ -1517,6 +1620,33 @@ namespace {
 
                     auto uiManager = Gallop::UIManager::Instance();
 
+                    auto env = GetJNIEnv();
+                    auto activity = GetActivity();
+
+                    if (sceneName == IL2CPP_STRING("Live")) {
+                        showMediaNotification(env, activity);
+
+                        auto loadSettings = il2cpp_symbols::get_method_pointer<Il2CppObject *(*)()>(
+                                "umamusume.dll", "Gallop.Live", "Director", "get_LoadSettings",
+                                IgnoreNumberOfArguments)();
+                        auto musicId = il2cpp_class_get_method_from_name_type<int (*)(
+                                Il2CppObject *)>(loadSettings->klass, "get_MusicId",
+                                                 0)->methodPointer(loadSettings);
+
+                        MediaNotificationManager::UpdateMetadata(musicId);
+                        updateMediaPlayWhenReady(env, activity, false);
+                        updateMediaNavigationButtons(env, activity, true, false);
+                    } else if (sceneName == IL2CPP_STRING("Home")) {
+                        showMediaNotification(env, activity);
+                        updateMediaPlayWhenReady(env, activity, false);
+                        updateMediaNavigationButtons(env, activity, false, false);
+                        MediaNotificationManager::UpdateMetadata();
+                    } else {
+                        updateMediaPlayWhenReady(env, activity, false);
+                        updateMediaNavigationButtons(env, activity, false, false);
+                        hideNotification(env, activity);
+                    }
+
                     if (sceneName == IL2CPP_STRING("Title")) {
                         if (config::character_system_text_caption) {
                             Localify::NotificationManager::Reset();
@@ -1529,7 +1659,6 @@ namespace {
                             bool isVirt = width < height;
                             Gallop::Screen::OriginalScreenWidth(width);
                             Gallop::Screen::OriginalScreenHeight(height);
-//                            Gallop::StandaloneWindowResize::IsVirt(isVirt);
                         }
                     }
 
@@ -1720,7 +1849,8 @@ HOOK_DEF(void*, do_dlopen, const char *name, int flags) {
     return handle;
 }
 
-HOOK_DEF(void*, do_dlopen_V24, const char *name, int flags, const void *extinfo [[maybe_unused]],
+HOOK_DEF(void*, do_dlopen_V24, const char *name, int flags,
+         const void *extinfo [[maybe_unused]],
          void *caller_addr [[maybe_unused]]) {
     void *handle = orig_do_dlopen_V24(name, flags, extinfo, caller_addr);
     if (dlopen_process(name, handle)) {
@@ -1738,7 +1868,8 @@ HOOK_DEF(void*, NativeBridgeLoadLibraryExt_V30, const char *filename, int flag,
                                                                      "NativeBridgeError"));
         auto *NativeBridgeGetError = reinterpret_cast<char *(*)()>(dlsym(nativeBridge,
                                                                          "NativeBridgeGetError"));
-        auto *NativeBridgeGetTrampoline = reinterpret_cast<void *(*)(void *handle, const char *name,
+        auto *NativeBridgeGetTrampoline = reinterpret_cast<void *(*)(void *handle,
+                                                                     const char *name,
                                                                      const char *shorty,
                                                                      uint32_t len)>(dlsym(
                 nativeBridge, "NativeBridgeGetTrampoline"));
@@ -1746,7 +1877,8 @@ HOOK_DEF(void*, NativeBridgeLoadLibraryExt_V30, const char *filename, int flag,
         stringstream path_armV8;
         path_armV8 << "/data/data/" << Game::GetCurrentPackageName().data() << "/arm64-v8a.so";
         stringstream path_armV7;
-        path_armV7 << "/data/data/" << Game::GetCurrentPackageName().data() << "/armeabi-v7a.so";
+        path_armV7 << "/data/data/" << Game::GetCurrentPackageName().data()
+                   << "/armeabi-v7a.so";
 
         string path;
 
@@ -1764,7 +1896,8 @@ HOOK_DEF(void*, NativeBridgeLoadLibraryExt_V30, const char *filename, int flag,
                 }
             }
 
-            auto hook = reinterpret_cast<void (*)(JNIEnv *, Resource *)>(NativeBridgeGetTrampoline(
+            auto hook = reinterpret_cast<void (*)(JNIEnv *,
+                                                  Resource *)>(NativeBridgeGetTrampoline(
                     lib, "hook", "VLL", 3));
             hook(env, classesDex);
 
@@ -1783,7 +1916,8 @@ HOOK_DEF(void*, NativeBridgeLoadLibraryExt_V26, const char *filename, int flag,
                                                                      "_ZN7android17NativeBridgeErrorEv"));
         auto *NativeBridgeGetError = reinterpret_cast<char *(*)()>(dlsym(nativeBridge,
                                                                          "_ZN7android20NativeBridgeGetErrorEv"));
-        auto *NativeBridgeGetTrampoline = reinterpret_cast<void *(*)(void *handle, const char *name,
+        auto *NativeBridgeGetTrampoline = reinterpret_cast<void *(*)(void *handle,
+                                                                     const char *name,
                                                                      const char *shorty,
                                                                      uint32_t len)>(dlsym(
                 nativeBridge, "_ZN7android25NativeBridgeGetTrampolineEPvPKcS2_j"));
@@ -1791,7 +1925,8 @@ HOOK_DEF(void*, NativeBridgeLoadLibraryExt_V26, const char *filename, int flag,
         stringstream path_armV8;
         path_armV8 << "/data/data/" << Game::GetCurrentPackageName().data() << "/arm64-v8a.so";
         stringstream path_armV7;
-        path_armV7 << "/data/data/" << Game::GetCurrentPackageName().data() << "/armeabi-v7a.so";
+        path_armV7 << "/data/data/" << Game::GetCurrentPackageName().data()
+                   << "/armeabi-v7a.so";
 
         string path;
 
@@ -1809,7 +1944,8 @@ HOOK_DEF(void*, NativeBridgeLoadLibraryExt_V26, const char *filename, int flag,
                 }
             }
 
-            auto hook = reinterpret_cast<void (*)(JNIEnv *, Resource *)>(NativeBridgeGetTrampoline(
+            auto hook = reinterpret_cast<void (*)(JNIEnv *,
+                                                  Resource *)>(NativeBridgeGetTrampoline(
                     lib, "hook", "VLL", 3));
             hook(env, classesDex);
             DobbyDestroy(addr_NativeBridgeLoadLibraryExt_V26);
@@ -1824,7 +1960,8 @@ HOOK_DEF(void*, NativeBridgeLoadLibrary_V21, const char *filename, int flag) {
         auto nativeBridge = dlopen("libnativebridge.so", RTLD_NOW);
         auto *NativeBridgeError = reinterpret_cast<bool (*)()>(dlsym(nativeBridge,
                                                                      "_ZN7android17NativeBridgeErrorEv"));
-        auto *NativeBridgeGetTrampoline = reinterpret_cast<void *(*)(void *handle, const char *name,
+        auto *NativeBridgeGetTrampoline = reinterpret_cast<void *(*)(void *handle,
+                                                                     const char *name,
                                                                      const char *shorty,
                                                                      uint32_t len)>(dlsym(
                 nativeBridge, "_ZN7android25NativeBridgeGetTrampolineEPvPKcS2_j"));
@@ -1832,7 +1969,8 @@ HOOK_DEF(void*, NativeBridgeLoadLibrary_V21, const char *filename, int flag) {
         stringstream path_armV8;
         path_armV8 << "/data/data/" << Game::GetCurrentPackageName().data() << "/arm64-v8a.so";
         stringstream path_armV7;
-        path_armV7 << "/data/data/" << Game::GetCurrentPackageName().data() << "/armeabi-v7a.so";
+        path_armV7 << "/data/data/" << Game::GetCurrentPackageName().data()
+                   << "/armeabi-v7a.so";
 
         string path;
 
@@ -1848,7 +1986,8 @@ HOOK_DEF(void*, NativeBridgeLoadLibrary_V21, const char *filename, int flag) {
                 LOGW("LoadLibrary failed");
             }
 
-            auto hook = reinterpret_cast<void (*)(JNIEnv *, Resource *)>(NativeBridgeGetTrampoline(
+            auto hook = reinterpret_cast<void (*)(JNIEnv *,
+                                                  Resource *)>(NativeBridgeGetTrampoline(
                     lib, "hook", "VLL", 3));
             hook(env, classesDex);
             DobbyDestroy(addr_NativeBridgeLoadLibrary_V21);
@@ -1859,7 +1998,8 @@ HOOK_DEF(void*, NativeBridgeLoadLibrary_V21, const char *filename, int flag) {
 }
 
 extern "C" void
-onLayoutChange_native(JNIEnv *env, jclass clazz, jobject activity, jobject /*view*/, jint /*left*/,
+onLayoutChange_native(JNIEnv *env, jclass clazz, jobject activity, jobject /*view*/,
+                      jint /*left*/,
                       jint /*top*/, jint /*right*/, jint /*bottom*/, jint /*oldLeft*/,
                       jint /*oldTop*/, jint /*oldRight*/, jint /*oldBottom*/) {
     if (!config::freeform_window) {
@@ -1876,7 +2016,8 @@ onLayoutChange_native(JNIEnv *env, jclass clazz, jobject activity, jobject /*vie
 
     auto windowMetricsCalculatorClass = env->GetObjectClass(windowMetricsCalculator);
 
-    auto computeId = env->GetMethodID(windowMetricsCalculatorClass, "computeCurrentWindowMetrics",
+    auto computeId = env->GetMethodID(windowMetricsCalculatorClass,
+                                      "computeCurrentWindowMetrics",
                                       "(Landroid/app/Activity;)Landroidx/window/layout/WindowMetrics;");
     auto metrics = env->CallObjectMethod(windowMetricsCalculator, computeId, activity);
 
@@ -1884,6 +2025,9 @@ onLayoutChange_native(JNIEnv *env, jclass clazz, jobject activity, jobject /*vie
 
     auto getRectId = env->GetMethodID(metricsClass, "getBounds", "()Landroid/graphics/Rect;");
     auto rect = env->CallObjectMethod(metrics, getRectId);
+
+    env->DeleteLocalRef(metrics);
+    env->DeleteLocalRef(metricsClass);
 
     auto rectClass = env->GetObjectClass(rect);
 
@@ -1896,20 +2040,7 @@ onLayoutChange_native(JNIEnv *env, jclass clazz, jobject activity, jobject /*vie
     env->DeleteLocalRef(rect);
     env->DeleteLocalRef(rectClass);
 
-    auto getWindowInsetsId = env->GetMethodID(metricsClass, "getWindowInsets",
-                                              "()Landroidx/core/view/WindowInsetsCompat;");
-    auto windowInsets = env->CallObjectMethod(metrics, getWindowInsetsId);
-
-    env->DeleteLocalRef(metrics);
-    env->DeleteLocalRef(metricsClass);
-
-    auto windowInsetsClass = env->GetObjectClass(windowInsets);
-    auto getInsetsId = env->GetMethodID(windowInsetsClass, "getInsets",
-                                        "(I)Landroidx/core/graphics/Insets;");
-    auto insets = env->CallObjectMethod(windowInsets, getInsetsId, 1 << 7);
-    env->DeleteLocalRef(windowInsets);
-    env->DeleteLocalRef(windowInsetsClass);
-
+    auto insets = getDisplayCutoutInsets(env, activity);
     auto insetsClass = env->GetObjectClass(insets);
     auto leftField = env->GetFieldID(insetsClass, "left", "I");
     auto topField = env->GetFieldID(insetsClass, "top", "I");
@@ -1922,7 +2053,35 @@ onLayoutChange_native(JNIEnv *env, jclass clazz, jobject activity, jobject /*vie
     auto bottom = env->GetIntField(insets, bottomField);
 
     env->DeleteLocalRef(insets);
+
+    insets = getCaptionBarInsets(env, activity);
+
+    auto captionBarLeft = env->GetIntField(insets, leftField);
+    auto captionBarTop = env->GetIntField(insets, topField);
+    auto captionBarRight = env->GetIntField(insets, rightField);
+    auto captionBarBottom = env->GetIntField(insets, bottomField);
+
+    env->DeleteLocalRef(insets);
+
+    insets = getCaptionBarInsetsIgnoringVisibility(env, activity);
+
+    auto captionBarIgnoringVisibilityLeft = env->GetIntField(insets, leftField);
+    auto captionBarIgnoringVisibilityTop = env->GetIntField(insets, topField);
+    auto captionBarIgnoringVisibilityRight = env->GetIntField(insets, rightField);
+    auto captionBarIgnoringVisibilityBottom = env->GetIntField(insets, bottomField);
+
+    env->DeleteLocalRef(insets);
     env->DeleteLocalRef(insetsClass);
+
+    if (captionBarIgnoringVisibilityLeft + captionBarIgnoringVisibilityRight > 0 &&
+        captionBarLeft + captionBarRight == 0) {
+        width -= captionBarIgnoringVisibilityLeft + captionBarIgnoringVisibilityRight;
+    }
+
+    if (captionBarIgnoringVisibilityTop + captionBarIgnoringVisibilityBottom > 0 &&
+        captionBarTop + captionBarBottom == 0) {
+        height -= captionBarIgnoringVisibilityTop + captionBarIgnoringVisibilityBottom;
+    }
 
     if (!isEdgeToEdgeEnabled(env, activity)) {
         width -= left + right;
@@ -1942,14 +2101,143 @@ onLayoutChange_native(JNIEnv *env, jclass clazz, jobject activity, jobject /*vie
         auto tuple = *il2cpp_object_unbox_type<System::ValueTuple<int, int> *>(self);
         ResizeWindow(tuple.Item1, tuple.Item2);
     };
-    il2cpp_symbols::get_method_pointer<void (*)(Il2CppObject *, Il2CppDelegate *)>("umamusume.dll",
-                                                                                   "Gallop",
-                                                                                   "MonoBehaviourExtension",
-                                                                                   "WaitForEndFrame",
-                                                                                   2)(gameSystem,
-                                                                                      CreateDelegate(
-                                                                                              boxed,
-                                                                                              fn));
+    il2cpp_symbols::get_method_pointer<void (*)(Il2CppObject *, Il2CppDelegate *)>(
+            "umamusume.dll",
+            "Gallop",
+            "MonoBehaviourExtension",
+            "WaitForEndFrame",
+            2)(gameSystem,
+               CreateDelegate(
+                       boxed,
+                       fn));
+}
+
+extern "C" void
+handleSetPlayWhenReady_native(JNIEnv *env, jclass clazz, jboolean playWhenReady) {
+    if (playWhenReady) {
+        WaitForEndOfFrame(*[]() {
+            auto controller = Gallop::SceneManager::Instance().GetCurrentViewController();
+            auto hubViewController = GetCurrentHubViewChildController();
+
+            if (hubViewController && hubViewController->klass->name == "HomeViewController"s) {
+                auto topUi = il2cpp_class_get_method_from_name_type<Il2CppObject *(*)(
+                        Il2CppObject *, int)>(hubViewController->klass, "GetTopUI",
+                                              1)->methodPointer(hubViewController, 10);
+                if (topUi) {
+                    auto data = il2cpp_class_get_method_from_name_type<Il2CppObject *(*)(
+                            Il2CppObject *)>(topUi->klass, "get_TempSetListPlayingData",
+                                             0)->methodPointer(topUi);
+
+                    auto SetListIdField = il2cpp_class_get_field_from_name(data->klass,
+                                                                           "SetListId");
+                    int SetListId;
+                    il2cpp_field_get_value(data, SetListIdField, &SetListId);
+
+                    if (SetListId > 0) {
+                        Il2CppObject *_jukeboxBgmSelector = il2cpp_symbols::get_method_pointer<Il2CppObject *(*)(
+                                Il2CppObject *)>(topUi->klass, "get_JukeboxBgmSelector", 0)(topUi);
+                        il2cpp_class_get_method_from_name_type<void (*)(Il2CppObject *, bool, float,
+                                                                        bool)>(
+                                _jukeboxBgmSelector->klass, "PlayCoroutinePlaySetList",
+                                3)->methodPointer(_jukeboxBgmSelector, true, 0.0f, true);
+                    } else {
+                        il2cpp_class_get_method_from_name_type<void (*)(Il2CppObject *)>(
+                                topUi->klass, "PlayRequestSong", 0)->methodPointer(topUi);
+                    }
+                }
+            }
+
+            if (controller && controller->klass->name == "LiveViewController"s) {
+                il2cpp_class_get_method_from_name_type<void (*)(Il2CppObject *)>(controller->klass,
+                                                                                 "ResumeLive",
+                                                                                 0)->methodPointer(
+                        controller);
+            }
+        });
+    } else {
+        WaitForEndOfFrame(*[]() {
+            auto controller = Gallop::SceneManager::Instance().GetCurrentViewController();
+            auto hubViewController = GetCurrentHubViewChildController();
+
+            if (hubViewController && hubViewController->klass->name == "HomeViewController"s) {
+                if (auto topUi = il2cpp_class_get_method_from_name_type<Il2CppObject *(*)(
+                        Il2CppObject *, int)>(hubViewController->klass, "GetTopUI",
+                                              1)->methodPointer(hubViewController, 10)) {
+                    il2cpp_class_get_method_from_name_type<void (*)(Il2CppObject *, bool)>(
+                            topUi->klass, "SetPlayMusicFlag", 1)->methodPointer(topUi, false);
+                }
+            }
+
+            if (controller && controller->klass->name == "LiveViewController"s) {
+                il2cpp_class_get_method_from_name_type<void (*)(Il2CppObject *)>(controller->klass,
+                                                                                 "PauseLive",
+                                                                                 0)->methodPointer(
+                        controller);
+            }
+        });
+    }
+}
+
+extern "C" void
+handleSeek_native(JNIEnv *env, jclass clazz, jint mediaItemIndex, jlong positionMs,
+                  jint seekCommand) {
+    if (seekCommand == 5) {
+        Localify::LiveUtils::MoveLivePlayback(static_cast<float>(positionMs) / 1000);
+    }
+
+    if (seekCommand == 7) {
+        WaitForEndOfFrame(*[]() {
+            auto controller = Gallop::SceneManager::Instance().GetCurrentViewController();
+            auto hubViewController = GetCurrentHubViewChildController();
+
+            if (hubViewController && hubViewController->klass->name == "HomeViewController"s) {
+                auto topUi = il2cpp_class_get_method_from_name_type<Il2CppObject *(*)(
+                        Il2CppObject *, int)>(hubViewController->klass, "GetTopUI",
+                                              1)->methodPointer(hubViewController, 10);
+                il2cpp_class_get_method_from_name_type<void (*)(Il2CppObject *, bool)>(topUi->klass,
+                                                                                       "OnClickSetListArrow",
+                                                                                       1)->methodPointer(
+                        topUi, false);
+            }
+        });
+    }
+
+    if (seekCommand == 9) {
+        WaitForEndOfFrame(*[]() {
+            auto controller = Gallop::SceneManager::Instance().GetCurrentViewController();
+            auto hubViewController = GetCurrentHubViewChildController();
+
+            if (hubViewController && hubViewController->klass->name == "HomeViewController"s) {
+                auto topUi = il2cpp_class_get_method_from_name_type<Il2CppObject *(*)(
+                        Il2CppObject *, int)>(hubViewController->klass, "GetTopUI",
+                                              1)->methodPointer(hubViewController, 10);
+
+                auto data = il2cpp_class_get_method_from_name_type<Il2CppObject *(*)(
+                        Il2CppObject *)>(topUi->klass, "get_TempSetListPlayingData",
+                                         0)->methodPointer(topUi);
+
+                auto IsPlayingField = il2cpp_class_get_field_from_name(data->klass, "IsPlaying");
+                bool IsPlaying;
+                il2cpp_field_get_value(data, IsPlayingField, &IsPlaying);
+
+                if (IsPlaying) {
+                    il2cpp_class_get_method_from_name_type<void (*)(Il2CppObject *, bool)>(
+                            topUi->klass, "OnClickSetListArrow", 1)->methodPointer(topUi, true);
+                }
+            }
+
+            if (controller && controller->klass->name == "LiveViewController"s) {
+                auto view = il2cpp_class_get_method_from_name_type<Il2CppObject *(*)(
+                        Il2CppObject *)>(controller->klass, "GetViewBase", 0)->methodPointer(
+                        controller);
+                auto coroutine = il2cpp_class_get_method_from_name_type<Il2CppObject *(*)(
+                        Il2CppObject *)>(controller->klass, "SkipLive", 0)->methodPointer(
+                        controller);
+
+                UnityEngine::MonoBehaviour(view).StartCoroutineManaged2(coroutine);
+            }
+        });
+    }
 }
 
 void hack_thread(HookArgs *args) {
@@ -1968,7 +2256,8 @@ void hack_thread(HookArgs *args) {
         if (ABI == "x86"s) {
             addr = reinterpret_cast<void *>(dlopen);
         } else {
-            addr = DobbySymbolResolver(nullptr, "__dl__Z9do_dlopenPKciPK17android_dlextinfoPKv");
+            addr = DobbySymbolResolver(nullptr,
+                                       "__dl__Z9do_dlopenPKciPK17android_dlextinfoPKv");
         }
     }
 

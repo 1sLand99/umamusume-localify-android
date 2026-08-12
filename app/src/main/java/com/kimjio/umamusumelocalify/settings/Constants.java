@@ -11,7 +11,6 @@ public final class Constants {
     public static final String PKG_KOR_PCR_GM = "com.kakaogames.pcrgm";
     public static final String PKG_ENG = "com.cygames.umamusume";
     public static final String PKG_TWN_GOOGLE = "com.komoe.kmumamusumegp";
-    public static final String PKG_TWN_MY_CARD_LEGACY = "com.komoe.kmumamusumemc";
     public static final String PKG_TWN_MY_CARD = "com.komoe.umamusumeofficial";
 
     public static final List<String> targetPackageNames = List.of(
@@ -21,7 +20,6 @@ public final class Constants {
             PKG_KOR_PCR_GM,
             PKG_ENG,
             PKG_TWN_GOOGLE,
-            PKG_TWN_MY_CARD_LEGACY,
             PKG_TWN_MY_CARD
             // TODO Package by region
     );

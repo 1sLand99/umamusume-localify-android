@@ -1,6 +1,10 @@
+plugins {
+    id 'org.gradle.toolchains.foojay-resolver-convention' version '1.0.0'
+}
 include ':module'
+include ':app'
+include ':umamusumelocalify'
 
 import org.apache.tools.ant.DirectoryScanner
 
 DirectoryScanner.removeDefaultExclude('**/.gitattributes')
-include ':app'
