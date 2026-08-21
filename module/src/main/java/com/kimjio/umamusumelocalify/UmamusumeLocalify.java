@@ -124,8 +124,6 @@ public final class UmamusumeLocalify {
 
             @Override
             public void onActivityDestroyed(@NonNull Activity activity) {
-                Log.d(TAG, "onActivityDestroyed: " + activity.getClass().getName());
-                Log.d(TAG, "onActivityDestroyed: " + activity.getClass().getSuperclass().getName());
             }
         });
         lifecycleRegistered = true;
